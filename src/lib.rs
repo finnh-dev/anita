@@ -24,11 +24,16 @@ mod tests {
     fn empty_input() {
         let result = compile_expression!("", (x) -> f32);
         if let Err(EvalexprCompError::EvalexprError(e)) = result {
-            assert_eq!(e, EvalexprError::WrongOperatorArgumentAmount { expected: 2, actual: 0 });
+            assert_eq!(
+                e,
+                EvalexprError::WrongOperatorArgumentAmount {
+                    expected: 2,
+                    actual: 0
+                }
+            );
         } else {
             panic!("Expected EvalexprError but got: {:?}", result)
         }
-        
     }
 
     #[test]
@@ -46,14 +51,22 @@ mod tests {
     }
 
     #[test]
-    fn division() {
+    fn fdivision() {
         let func = compile_expression!("x / 2", (x) -> f32).unwrap();
         let result = func.execute(2.0);
         assert_eq!(result, 2.0 / 2.0);
     }
 
     #[test]
-    fn division_by_zero() {
+    #[ignore = "integer division by zero crashes"]
+    fn idivision_by_zero() {
+        let func = compile_expression!("0.0 + 1 / x", (x) -> f32).unwrap();
+        let result = func.execute(0.0);
+        assert!(result.is_infinite());
+    }
+
+    #[test]
+    fn fdivision_by_zero() {
         let func = compile_expression!("1.0 / x", (x) -> f32).unwrap();
         let result = func.execute(0.0);
         assert!(result.is_infinite());
@@ -71,7 +84,7 @@ mod tests {
         let func = compile_expression!("x + 2", (x) -> f32).unwrap();
         let result = func.execute(5.0);
         assert_eq!(result, 5.0 + 2.0);
-    }    
+    }
 
     #[test]
     fn sum_absorbed() {
@@ -94,5 +107,12 @@ mod tests {
         let func = compile_expression!("x - 2", (x) -> f32).unwrap();
         let result = func.execute(5.0);
         assert_eq!(result, 3.0);
+    }
+
+    #[test]
+    fn chain() {
+        let func = compile_expression!("y = 2; z = 2; x + y + z", (x) -> f32).unwrap();
+        let result = func.execute(2.0);
+        assert_eq!(result, 2.0 + 2.0 + 2.0);
     }
 }

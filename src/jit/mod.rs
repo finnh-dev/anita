@@ -1,14 +1,14 @@
 use std::{
-    collections::{HashMap, HashSet}, mem
+    collections::{HashMap, HashSet},
+    mem,
 };
 
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{FuncId, Module, ModuleError};
-use evalexpr::{build_operator_tree, EvalexprError, Node};
+use evalexpr::{build_operator_tree, EvalexprError, Node, Operator};
 use itertools::Itertools;
 use types::{F32, I64};
-
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -31,8 +31,13 @@ pub enum EvalexprCompError {
     EvalexprError(EvalexprError),
     CompilerError(ModuleError),
     UseOfUninitializedVariables(Box<[String]>),
-    UnsupportedTypeConversion{target_type: Type, source_type: Type},
+    UnsupportedTypeConversion {
+        target_type: Type,
+        source_type: Type,
+    },
+    ExpressionEvaluatesToNoValue(Node),
     UseOfUnsupportedType(Type),
+    MalformedOperatorTree,
 }
 
 impl EvalexprCompError {
@@ -163,7 +168,9 @@ impl JIT {
 
         let mut translator = ExprTranslator { builder, variables };
 
-        let return_value = translator.translate_operator(&node)?;
+        let Some(return_value) = translator.translate_operator(&node)? else {
+            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node));
+        };
         let mut builder = translator.builder;
 
         builder.ins().return_(&[return_value]);
@@ -252,26 +259,28 @@ struct ExprTranslator<'a> {
 }
 
 impl<'a> ExprTranslator<'a> {
-    pub fn translate_operator(&mut self, node: &Node) -> Result<Value, EvalexprCompError> {
+    pub fn translate_operator(&mut self, node: &Node) -> Result<Option<Value>, EvalexprCompError> {
         match node.operator() {
             evalexpr::Operator::RootNode => {
-                let return_value = self.unary_operation(node)?;
-                Ok(return_value)
+                let children = node.children();
+                if children.len() > 1 {
+                    return Err(EvalexprCompError::MalformedOperatorTree);
+                }
+
+                if let Some(op_tree) = children.first() {
+                    self.translate_operator(op_tree)
+                } else {
+                    Ok(None)
+                }
             }
             evalexpr::Operator::Add => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 let operation_type = self.check_value_type(lhs);
                 let rhs = self.convert_value_type(operation_type, rhs)?;
                 match operation_type {
-                    op_type if op_type.is_int() => {
-                        Ok(self.builder.ins().iadd(lhs, rhs))
-                    },
-                    op_type if op_type.is_float() => {
-                        Ok(self.builder.ins().fadd(lhs, rhs))
-                    },
-                    op_type => {
-                        Err(EvalexprCompError::UseOfUnsupportedType(op_type))
-                    }
+                    op_type if op_type.is_int() => Ok(Some(self.builder.ins().iadd(lhs, rhs))),
+                    op_type if op_type.is_float() => Ok(Some(self.builder.ins().fadd(lhs, rhs))),
+                    op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
             }
             evalexpr::Operator::Sub => {
@@ -279,71 +288,47 @@ impl<'a> ExprTranslator<'a> {
                 let operation_type = self.check_value_type(lhs);
                 let rhs = self.convert_value_type(operation_type, rhs)?;
                 match operation_type {
-                    op_type if op_type.is_int() => {
-                        Ok(self.builder.ins().isub(lhs, rhs))
-                    },
-                    op_type if op_type.is_float() => {
-                        Ok(self.builder.ins().fsub(lhs, rhs))
-                    },
-                    op_type => {
-                        Err(EvalexprCompError::UseOfUnsupportedType(op_type))
-                    }
+                    op_type if op_type.is_int() => Ok(Some(self.builder.ins().isub(lhs, rhs))),
+                    op_type if op_type.is_float() => Ok(Some(self.builder.ins().fsub(lhs, rhs))),
+                    op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
-            },
+            }
             evalexpr::Operator::Neg => {
                 let operand = self.unary_operation(node)?;
                 match self.check_value_type(operand) {
-                    op_type if op_type.is_int() => {
-                        Ok(self.builder.ins().ineg(operand))
-                    },
-                    op_type if op_type.is_float() => {
-                        Ok(self.builder.ins().fneg(operand))
-                    },
-                    op_type => {
-                        Err(EvalexprCompError::UseOfUnsupportedType(op_type))
-                    }
-                }                
-            },
+                    op_type if op_type.is_int() => Ok(Some(self.builder.ins().ineg(operand))),
+                    op_type if op_type.is_float() => Ok(Some(self.builder.ins().fneg(operand))),
+                    op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
+                }
+            }
             evalexpr::Operator::Mul => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 let operation_type = self.check_value_type(lhs);
                 let rhs = self.convert_value_type(operation_type, rhs)?;
                 match operation_type {
-                    op_type if op_type.is_int() => {
-                        Ok(self.builder.ins().imul(lhs, rhs))
-                    },
-                    op_type if op_type.is_float() => {
-                        Ok(self.builder.ins().fmul(lhs, rhs))
-                    },
-                    op_type => {
-                        Err(EvalexprCompError::UseOfUnsupportedType(op_type))
-                    }
+                    op_type if op_type.is_int() => Ok(Some(self.builder.ins().imul(lhs, rhs))),
+                    op_type if op_type.is_float() => Ok(Some(self.builder.ins().fmul(lhs, rhs))),
+                    op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
-            },
+            }
             evalexpr::Operator::Div => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 let operation_type = self.check_value_type(lhs);
                 let rhs = self.convert_value_type(operation_type, rhs)?;
                 match operation_type {
-                    op_type if op_type.is_int() => {
-                        Ok(self.builder.ins().sdiv(lhs, rhs))
-                    },
-                    op_type if op_type.is_float() => {
-                        Ok(self.builder.ins().fdiv(lhs, rhs))
-                    },
-                    op_type => {
-                        Err(EvalexprCompError::UseOfUnsupportedType(op_type))
-                    }
+                    op_type if op_type.is_int() => Ok(Some(self.builder.ins().sdiv(lhs, rhs))),
+                    op_type if op_type.is_float() => Ok(Some(self.builder.ins().fdiv(lhs, rhs))),
+                    op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
-            },
+            }
             evalexpr::Operator::Mod => {
                 let (_lhs, _rhs) = self.binary_operation(node)?;
                 todo!()
-            },
+            }
             evalexpr::Operator::Exp => {
                 let (_lhs, _rhs) = self.binary_operation(node)?;
                 todo!()
-            },
+            }
             evalexpr::Operator::Eq => todo!(),
             evalexpr::Operator::Neq => todo!(),
             evalexpr::Operator::Gt => todo!(),
@@ -353,7 +338,40 @@ impl<'a> ExprTranslator<'a> {
             evalexpr::Operator::And => todo!(),
             evalexpr::Operator::Or => todo!(),
             evalexpr::Operator::Not => todo!(),
-            evalexpr::Operator::Assign => todo!(),
+            evalexpr::Operator::Assign => {
+                let children = node.children();
+                if children.len() != 2 {
+                    return Err(EvalexprError::WrongOperatorArgumentAmount {
+                        expected: 2,
+                        actual: children.len(),
+                    }
+                    .into());
+                }
+
+                let (target, value_ast) = (&children[0], &children[1]);
+                let Some(value) = self.translate_operator(value_ast)? else {
+                    return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
+                        value_ast.clone(),
+                    ));
+                };
+
+                let Operator::VariableIdentifierWrite { identifier } = target.operator() else {
+                    return Err(EvalexprCompError::MalformedOperatorTree);
+                };
+                let variable = *self
+                    .variables
+                    .get(identifier)
+                    .expect(&format!("Variable {} does not exist", identifier));
+
+                let var_value = self.builder.use_var(variable);
+                let var_type = self.check_value_type(var_value);
+
+                let value = self.convert_value_type(var_type, value)?;
+
+                self.builder.def_var(variable, value);
+
+                Ok(None)
+            }
             evalexpr::Operator::AddAssign => todo!(),
             evalexpr::Operator::SubAssign => todo!(),
             evalexpr::Operator::MulAssign => todo!(),
@@ -363,22 +381,35 @@ impl<'a> ExprTranslator<'a> {
             evalexpr::Operator::AndAssign => todo!(),
             evalexpr::Operator::OrAssign => todo!(),
             evalexpr::Operator::Tuple => todo!(),
-            evalexpr::Operator::Chain => todo!(),
+            evalexpr::Operator::Chain => {
+                let mut return_value = None;
+                for ast in node.children() {
+                    return_value = self.translate_operator(ast)?;
+                }
+                println!("chain return: {:?}", return_value);
+                Ok(return_value)
+            }
             evalexpr::Operator::Const { value } => match value {
                 evalexpr::Value::String(_) => todo!(),
-                evalexpr::Value::Float(value) => Ok(self.builder.ins().f32const(*value as f32)),
-                evalexpr::Value::Int(value) => Ok(self.builder.ins().iconst(I64,*value)),
-                evalexpr::Value::Boolean(_) => todo!(),
+                evalexpr::Value::Float(value) => {
+                    Ok(Some(self.builder.ins().f32const(*value as f32)))
+                }
+                evalexpr::Value::Int(value) => {
+                    Ok(Some(self.builder.ins().iconst(I64, *value)))
+                },
+                evalexpr::Value::Boolean(value) => {
+                    Ok(Some(self.builder.ins().iconst(I64, *value as i64)))
+                }
                 evalexpr::Value::Tuple(_) => todo!(),
                 evalexpr::Value::Empty => todo!(),
             },
-            evalexpr::Operator::VariableIdentifierWrite { identifier }
-            | evalexpr::Operator::VariableIdentifierRead { identifier } => {
+            evalexpr::Operator::VariableIdentifierWrite { identifier: _ } => todo!(),
+            evalexpr::Operator::VariableIdentifierRead { identifier } => {
                 let variable = self
                     .variables
                     .get(identifier)
                     .expect(&format!("Variable {} does not exist", identifier));
-                Ok(self.builder.use_var(*variable))
+                Ok(Some(self.builder.use_var(*variable)))
             }
             evalexpr::Operator::FunctionIdentifier { identifier: _ } => todo!(),
         }
@@ -387,12 +418,24 @@ impl<'a> ExprTranslator<'a> {
     fn binary_operation(&mut self, node: &Node) -> Result<(Value, Value), EvalexprCompError> {
         let children = node.children();
         if children.len() != 2 {
-            return Err(EvalexprError::WrongOperatorArgumentAmount { expected: 2, actual: children.len() }.into())
+            return Err(EvalexprError::WrongOperatorArgumentAmount {
+                expected: 2,
+                actual: children.len(),
+            }
+            .into());
         }
 
-        let (lhs, rhs) = (&children[0], &children[1]);
-        let lhs = self.translate_operator(lhs)?;
-        let rhs = self.translate_operator(rhs)?;
+        let (lhs_ast, rhs_ast) = (&children[0], &children[1]);
+        let Some(lhs) = self.translate_operator(lhs_ast)? else {
+            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
+                lhs_ast.clone(),
+            ));
+        };
+        let Some(rhs) = self.translate_operator(rhs_ast)? else {
+            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
+                rhs_ast.clone(),
+            ));
+        };
 
         Ok((lhs, rhs))
     }
@@ -400,11 +443,19 @@ impl<'a> ExprTranslator<'a> {
     fn unary_operation(&mut self, node: &Node) -> Result<Value, EvalexprCompError> {
         let children = node.children();
         if children.len() != 1 {
-            return Err(EvalexprError::WrongOperatorArgumentAmount { expected: 2, actual: children.len() }.into())
+            return Err(EvalexprError::WrongOperatorArgumentAmount {
+                expected: 2,
+                actual: children.len(),
+            }
+            .into());
         }
 
-        let operand = &children[0];
-        let operand = self.translate_operator(operand)?;
+        let operand_ast = &children[0];
+        let Some(operand) = self.translate_operator(operand_ast)? else {
+            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
+                operand_ast.clone(),
+            ));
+        };
 
         Ok(operand)
     }
@@ -414,32 +465,51 @@ impl<'a> ExprTranslator<'a> {
         dfg.value_type(value)
     }
 
-    fn convert_value_type(&mut self, target_type: Type, value: Value) -> Result<Value, EvalexprCompError>{
+    fn convert_value_type(
+        &mut self,
+        target_type: Type,
+        value: Value,
+    ) -> Result<Value, EvalexprCompError> {
         match (target_type, self.check_value_type(value)) {
             (target_type, source_type) if target_type == source_type => Ok(value),
-            (target_type, source_type) if target_type.is_int() && source_type.is_int() && target_type.bits() > source_type.bits() => {
+            (target_type, source_type)
+                if target_type.is_int()
+                    && source_type.is_int()
+                    && target_type.bits() > source_type.bits() =>
+            {
                 Ok(self.builder.ins().sextend(target_type, value))
-            },
-            (target_type, source_type) if target_type.is_int() && source_type.is_int() && target_type.bits() < source_type.bits() => {
+            }
+            (target_type, source_type)
+                if target_type.is_int()
+                    && source_type.is_int()
+                    && target_type.bits() < source_type.bits() =>
+            {
                 Ok(self.builder.ins().ireduce(target_type, value))
-            },
+            }
             (target_type, source_type) if target_type.is_int() && source_type.is_float() => {
                 Ok(self.builder.ins().fcvt_to_sint(target_type, value))
-            },
+            }
             (target_type, source_type) if target_type.is_float() && source_type.is_int() => {
                 Ok(self.builder.ins().fcvt_from_sint(target_type, value))
-            },
-            (target_type, source_type) if target_type.is_float() && source_type.is_float() && target_type.bits() > source_type.bits() => {
-                Ok(self.builder.ins().fpromote(target_type, value))
-            },
-            (target_type, source_type) if target_type.is_float() && source_type.is_float() && target_type.bits() > source_type.bits() => {
-                Ok(self.builder.ins().fdemote(target_type, value))
-            },
-            (target_type, source_type) => {
-                Err(EvalexprCompError::UnsupportedTypeConversion{ target_type, source_type })
             }
+            (target_type, source_type)
+                if target_type.is_float()
+                    && source_type.is_float()
+                    && target_type.bits() > source_type.bits() =>
+            {
+                Ok(self.builder.ins().fpromote(target_type, value))
+            }
+            (target_type, source_type)
+                if target_type.is_float()
+                    && source_type.is_float()
+                    && target_type.bits() > source_type.bits() =>
+            {
+                Ok(self.builder.ins().fdemote(target_type, value))
+            }
+            (target_type, source_type) => Err(EvalexprCompError::UnsupportedTypeConversion {
+                target_type,
+                source_type,
+            }),
         }
     }
-
-
 }
