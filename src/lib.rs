@@ -115,4 +115,7 @@ mod tests {
         let result = func.execute(2.0);
         assert_eq!(result, 2.0 + 2.0 + 2.0);
     }
+
+    // TODO: Test against EvalExpr
+    // TODO: Automate testing with value collections and randomized values
 }

@@ -63,7 +63,6 @@ impl From<ModuleError> for EvalexprCompError {
     }
 }
 
-// TODO: make generic/implement constructor macro for different function signatures
 #[derive(Debug)]
 pub struct EvalexprFunction<I, O> {
     #[allow(unused)]
@@ -77,19 +76,9 @@ impl<I, O> EvalexprFunction<I, O> {
     }
 }
 
-/// The basic JIT class.
 pub struct JIT {
-    /// The function builder context, which is reused across multiple
-    /// FunctionBuilder instances.
     builder_context: FunctionBuilderContext,
-
-    /// The main Cranelift context, which holds the state for codegen. Cranelift
-    /// separates this from `Module` to allow for parallel compilation, with a
-    /// context per thread, though this isn't in the simple demo here.
     ctx: codegen::Context,
-
-    /// The module, with the jit backend, which manages the JIT'd
-    /// functions.
     module: JITModule,
 }
 
@@ -250,7 +239,7 @@ fn declare_variable(
     let var = Variable::new(*index);
     if !variables.contains_key(name) {
         variables.insert(name.into(), var);
-        builder.declare_var(var, F32);
+        builder.declare_var(var, F32); // TODO: allow different variable types or make default behavior
         *index += 1;
     }
     var
