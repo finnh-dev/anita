@@ -107,7 +107,8 @@ impl<'a> ExprTranslator<'a> {
                     ));
                 };
 
-                let evalexpr::Operator::VariableIdentifierWrite { identifier } = target.operator() else {
+                let evalexpr::Operator::VariableIdentifierWrite { identifier } = target.operator()
+                else {
                     return Err(EvalexprCompError::MalformedOperatorTree);
                 };
                 let variable = *self
@@ -146,9 +147,7 @@ impl<'a> ExprTranslator<'a> {
                 evalexpr::Value::Float(value) => {
                     Ok(Some(self.builder.ins().f32const(*value as f32)))
                 }
-                evalexpr::Value::Int(value) => {
-                    Ok(Some(self.builder.ins().iconst(I64, *value)))
-                },
+                evalexpr::Value::Int(value) => Ok(Some(self.builder.ins().iconst(I64, *value))),
                 evalexpr::Value::Boolean(value) => {
                     Ok(Some(self.builder.ins().iconst(I64, *value as i64)))
                 }
@@ -217,7 +216,7 @@ impl<'a> ExprTranslator<'a> {
         dfg.value_type(value)
     }
 
-    fn convert_value_type(
+    pub(super) fn convert_value_type(
         &mut self,
         target_type: Type,
         value: Value,

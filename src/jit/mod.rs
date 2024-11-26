@@ -19,7 +19,7 @@ macro_rules! compile_expression {
 
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
-            use jit::{EvalexprFunction, EvalexprCompError, JIT};
+            use $crate::jit::{EvalexprFunction, EvalexprCompError, JIT};
 
             let jit = JIT::default();
             #[allow(unused_parens)] // necessary due to https://github.com/rust-lang/rust/issues/73068
@@ -163,6 +163,8 @@ impl JIT {
         let Some(return_value) = translator.translate_operator(&node)? else {
             return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node));
         };
+        let return_value = translator.convert_value_type(F32, return_value)?;
+
         let mut builder = translator.builder;
 
         builder.ins().return_(&[return_value]);
