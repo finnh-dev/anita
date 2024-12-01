@@ -1,7 +1,7 @@
 use core::f32;
 
 use evalexpr::build_operator_tree;
-use evalexpr_comp::{compile_expression, jit::EvalexprCompError};
+use anita::{compile_expression, jit::EvalexprCompError};
 
 #[test]
 fn owned_input() {
@@ -17,12 +17,12 @@ fn empty_input() {
     let ast = build_operator_tree(&expr).unwrap();
     let result = compile_expression!(expr, (x) -> f32);
     if let Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node)) = result {
-        assert_eq!(
-            node,
-            ast
-        );
+        assert_eq!(node, ast);
     } else {
-        panic!("Expected EvalexprCompError::ExpressionEvaluatesToNoValue but got: {:?}", result)
+        panic!(
+            "Expected EvalexprCompError::ExpressionEvaluatesToNoValue but got: {:?}",
+            result
+        )
     }
 }
 

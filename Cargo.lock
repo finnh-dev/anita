@@ -15,6 +15,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "anita"
+version = "0.1.0"
+dependencies = [
+ "cranelift",
+ "cranelift-jit",
+ "cranelift-module",
+ "cranelift-native",
+ "evalexpr",
+ "itertools",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -204,18 +216,6 @@ name = "evalexpr"
 version = "12.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a34d6a32086a56f60134157499b9f397ba3a278f06b59241d17df7b90849e69c"
-
-[[package]]
-name = "evalexpr_comp"
-version = "0.1.0"
-dependencies = [
- "cranelift",
- "cranelift-jit",
- "cranelift-module",
- "cranelift-native",
- "evalexpr",
- "itertools",
-]
 
 [[package]]
 name = "fallible-iterator"

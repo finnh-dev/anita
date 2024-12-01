@@ -16,7 +16,7 @@ impl<'a> ExprTranslator<'a> {
             evalexpr::Operator::RootNode => {
                 let children = node.children();
                 if children.len() > 1 {
-                    return Err(EvalexprCompError::MalformedOperatorTree);
+                    return Err(EvalexprCompError::MalformedOperatorTree(node.clone()));
                 }
 
                 if let Some(op_tree) = children.first() {
@@ -109,12 +109,13 @@ impl<'a> ExprTranslator<'a> {
 
                 let evalexpr::Operator::VariableIdentifierWrite { identifier } = target.operator()
                 else {
-                    return Err(EvalexprCompError::MalformedOperatorTree);
+                    return Err(EvalexprCompError::MalformedOperatorTree(node.clone()));
                 };
-                let variable = *self
+                let variable = self
                     .variables
                     .get(identifier)
-                    .expect(&format!("Variable {} does not exist", identifier));
+                    .copied()
+                    .ok_or_else(|| EvalexprCompError::VariableNotFound(identifier.clone()))?;
 
                 let var_value = self.builder.use_var(variable);
                 let var_type = self.check_value_type(var_value);

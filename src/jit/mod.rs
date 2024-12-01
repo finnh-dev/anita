@@ -40,7 +40,8 @@ pub enum EvalexprCompError {
     },
     ExpressionEvaluatesToNoValue(Node),
     UseOfUnsupportedType(Type),
-    MalformedOperatorTree,
+    MalformedOperatorTree(Node),
+    VariableNotFound(String),
 }
 
 impl EvalexprCompError {

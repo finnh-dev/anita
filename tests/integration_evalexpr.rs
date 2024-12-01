@@ -1,5 +1,5 @@
 use evalexpr::{error::*, *};
-use evalexpr_comp::compile_expression;
+use anita::compile_expression;
 use std::convert::TryFrom;
 
 // TODO: implement tests with evalexpr_comp
@@ -8,7 +8,8 @@ fn test_against_evalexpr_float(expr: &str, input: f32) {
     let func = compile_expression!(expr, (x) -> f32).unwrap();
     let mut ctx: HashMapContext<DefaultNumericTypes> = context_map! {
         "x" => float input,
-    }.unwrap();
+    }
+    .unwrap();
     let Ok(Value::Float(expected)) = eval_with_context_mut(expr, &mut ctx) else {
         panic!("Evalexpr produced unexpected output")
     };
