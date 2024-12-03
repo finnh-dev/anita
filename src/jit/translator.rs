@@ -160,7 +160,7 @@ impl<'a> ExprTranslator<'a> {
                 let variable = self
                     .variables
                     .get(identifier)
-                    .expect(&format!("Variable {} does not exist", identifier));
+                    .unwrap_or_else(|| panic!("Variable {} does not exist", identifier));
                 Ok(Some(self.builder.use_var(*variable)))
             }
             evalexpr::Operator::FunctionIdentifier { identifier: _ } => todo!(),

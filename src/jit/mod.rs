@@ -46,7 +46,7 @@ pub enum EvalexprCompError {
 }
 
 impl EvalexprCompError {
-    pub fn use_of_uninitialized_variables(uninitialized: Box<[&&str]>) -> EvalexprCompError {
+    pub fn use_of_uninitialized_variables(uninitialized: &[&&str]) -> EvalexprCompError {
         EvalexprCompError::UseOfUninitializedVariables(
             uninitialized.iter().map(|x| x.to_string()).collect(),
         )
@@ -110,7 +110,7 @@ impl JIT {
     fn finalize<I, O>(self, func_id: FuncId) -> EvalexprFunction<I, O> {
         let code_ptr = self.module.get_finalized_function(func_id);
 
-        let function_pointer = unsafe { mem::transmute::<_, fn(I) -> O>(code_ptr) };
+        let function_pointer = unsafe { mem::transmute::<*const u8, fn(I) -> O>(code_ptr) };
 
         let memory_region = Box::new(self.module);
         EvalexprFunction {
@@ -199,7 +199,7 @@ fn declare_variables(
         .collect();
     if uninitialized.len() > 0 {
         return Err(EvalexprCompError::use_of_uninitialized_variables(
-            uninitialized,
+            &uninitialized,
         ));
     }
 
@@ -217,7 +217,7 @@ fn declare_variables(
         .collect();
     if uninitialized.len() > 0 {
         return Err(EvalexprCompError::use_of_uninitialized_variables(
-            uninitialized,
+            &uninitialized,
         ));
     }
 
