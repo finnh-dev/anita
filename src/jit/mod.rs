@@ -12,6 +12,7 @@ use translator::ExprTranslator;
 use types::F32;
 
 mod translator;
+mod math;
 
 #[macro_export]
 macro_rules! compile_expression {

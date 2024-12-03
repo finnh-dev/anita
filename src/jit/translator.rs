@@ -148,7 +148,7 @@ impl<'a> ExprTranslator<'a> {
                 evalexpr::Value::Float(value) => {
                     Ok(Some(self.builder.ins().f32const(*value as f32)))
                 }
-                evalexpr::Value::Int(value) => Ok(Some(self.builder.ins().iconst(I64, *value))),
+                evalexpr::Value::Int(value) => Ok(Some(self.builder.ins().f32const(*value as f32))),
                 evalexpr::Value::Boolean(value) => {
                     Ok(Some(self.builder.ins().iconst(I64, *value as i64)))
                 }
@@ -224,40 +224,40 @@ impl<'a> ExprTranslator<'a> {
     ) -> Result<Value, EvalexprCompError> {
         match (target_type, self.check_value_type(value)) {
             (target_type, source_type) if target_type == source_type => Ok(value),
-            (target_type, source_type)
-                if target_type.is_int()
-                    && source_type.is_int()
-                    && target_type.bits() > source_type.bits() =>
-            {
-                Ok(self.builder.ins().sextend(target_type, value))
-            }
-            (target_type, source_type)
-                if target_type.is_int()
-                    && source_type.is_int()
-                    && target_type.bits() < source_type.bits() =>
-            {
-                Ok(self.builder.ins().ireduce(target_type, value))
-            }
-            (target_type, source_type) if target_type.is_int() && source_type.is_float() => {
-                Ok(self.builder.ins().fcvt_to_sint(target_type, value))
-            }
-            (target_type, source_type) if target_type.is_float() && source_type.is_int() => {
-                Ok(self.builder.ins().fcvt_from_sint(target_type, value))
-            }
-            (target_type, source_type)
-                if target_type.is_float()
-                    && source_type.is_float()
-                    && target_type.bits() > source_type.bits() =>
-            {
-                Ok(self.builder.ins().fpromote(target_type, value))
-            }
-            (target_type, source_type)
-                if target_type.is_float()
-                    && source_type.is_float()
-                    && target_type.bits() > source_type.bits() =>
-            {
-                Ok(self.builder.ins().fdemote(target_type, value))
-            }
+            // (target_type, source_type)
+            //     if target_type.is_int()
+            //         && source_type.is_int()
+            //         && target_type.bits() > source_type.bits() =>
+            // {
+            //     Ok(self.builder.ins().sextend(target_type, value))
+            // }
+            // (target_type, source_type)
+            //     if target_type.is_int()
+            //         && source_type.is_int()
+            //         && target_type.bits() < source_type.bits() =>
+            // {
+            //     Ok(self.builder.ins().ireduce(target_type, value))
+            // }
+            // (target_type, source_type) if target_type.is_int() && source_type.is_float() => {
+            //     Ok(self.builder.ins().fcvt_to_sint(target_type, value))
+            // }
+            // (target_type, source_type) if target_type.is_float() && source_type.is_int() => {
+            //     Ok(self.builder.ins().fcvt_from_sint(target_type, value))
+            // }
+            // (target_type, source_type)
+            //     if target_type.is_float()
+            //         && source_type.is_float()
+            //         && target_type.bits() > source_type.bits() =>
+            // {
+            //     Ok(self.builder.ins().fpromote(target_type, value))
+            // }
+            // (target_type, source_type)
+            //     if target_type.is_float()
+            //         && source_type.is_float()
+            //         && target_type.bits() > source_type.bits() =>
+            // {
+            //     Ok(self.builder.ins().fdemote(target_type, value))
+            // }
             (target_type, source_type) => Err(EvalexprCompError::UnsupportedTypeConversion {
                 target_type,
                 source_type,
