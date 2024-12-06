@@ -11,6 +11,7 @@ use itertools::Itertools;
 use translator::ExprTranslator;
 use types::F32;
 
+use math::functions::get_function_addr;
 mod translator;
 mod math;
 
@@ -124,6 +125,7 @@ impl JIT {
         expression: E,
         params: &[&str],
     ) -> Result<EvalexprFunction<I, O>, EvalexprCompError> {
+        let _ = get_function_addr("test_fn");
         let ast = build_operator_tree(expression.as_ref())?;
 
         self.translate(ast, params)?;

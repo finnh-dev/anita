@@ -16,7 +16,7 @@ struct FnSignature {
 #[proc_macro]
 pub fn link_cranelift(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as File);
-    eprintln!("ast: {:#?}", ast);
+    // eprintln!("ast: {:#?}", ast);
 
     let functions: Vec<&ItemFn> = ast
         .items
@@ -62,7 +62,7 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
         } // TODO: Figure out if this is the right calling convention and if its supposed to be hardcoded
     });
 
-    eprintln!("Functions: {:?}", signatures);
+    // eprintln!("Functions: {:?}", signatures);
 
     quote! {
         #(#extern_c_functions)*
@@ -74,7 +74,7 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
             }
         }
 
-        pub(crate) fn get_function_signature(identifier: &str) -> Option<Signature> {
+        pub(crate) fn get_function_signature(identifier: &str) -> Option<cranelift::prelude::Signature> {
             match identifier {
                 #(#match_signatures,)*
                 _ => None
