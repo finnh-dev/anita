@@ -114,5 +114,8 @@ Evalexpr allows the declaration of new variables. This is supported using anita 
 ## SIMD
 TODO!
 
+## Frontend
+In order to reduce effort anita is using evalexpr's operator tree to build the cranelift IR. This might be subject to change though the frontend syntax is likely to stay the same.
+
 ## Naming
-The name anita is inspired by the first all-electronic desktop calculator [Anita](<https://en.wikipedia.org/wiki/Sumlock_ANITA_calculator>)
+The name anita is inspired by the first all-electronic desktop calculator [ANITA](<https://en.wikipedia.org/wiki/Sumlock_ANITA_calculator>)

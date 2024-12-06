@@ -160,5 +160,3 @@ fn cos() {
     let result = func.execute(1.0);
     assert_eq!(result, f32::cos(1.0)); // TODO: fix non deterministic precision 
 }
-
-// TODO: implement all tests for planned functions

@@ -1,1 +1,1 @@
-mod functions;
+pub(crate) mod functions;

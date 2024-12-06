@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use cranelift::prelude::{types::I64, FunctionBuilder, InstBuilder, Type, Value, Variable};
+use cranelift::{codegen::ir::FuncRef, prelude::{types::I64, FunctionBuilder, InstBuilder, Type, Value, Variable}};
+use cranelift_jit::JITModule;
 use evalexpr::{EvalexprError, Node};
 
 use super::EvalexprCompError;
@@ -8,9 +9,15 @@ use super::EvalexprCompError;
 pub(super) struct ExprTranslator<'a> {
     pub(super) builder: FunctionBuilder<'a>,
     pub(super) variables: HashMap<String, Variable>,
+    pub(super) functions: HashMap<String, FuncRef>,
+    pub(super) module: &'a mut JITModule,
 }
 
 impl<'a> ExprTranslator<'a> {
+    pub fn deconstruct(self) -> (FunctionBuilder<'a>, HashMap<String, Variable>, HashMap<String, FuncRef>, &'a mut JITModule) {
+        (self.builder, self.variables, self.functions, self.module)
+    }
+
     pub fn translate_operator(&mut self, node: &Node) -> Result<Option<Value>, EvalexprCompError> {
         match node.operator() {
             evalexpr::Operator::RootNode => {

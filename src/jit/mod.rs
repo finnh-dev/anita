@@ -159,15 +159,16 @@ impl JIT {
         builder.seal_block(entry_block);
 
         let variables = declare_variables(&mut builder, &node, params, entry_block)?;
+        let functions = HashMap::default();
 
-        let mut translator = ExprTranslator { builder, variables };
+        let mut translator = ExprTranslator { builder, variables, functions, module: &mut self.module };
 
         let Some(return_value) = translator.translate_operator(&node)? else {
             return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node));
         };
         let return_value = translator.convert_value_type(F32, return_value)?;
 
-        let mut builder = translator.builder;
+        let (mut builder, _, _, _) = translator.deconstruct();
 
         builder.ins().return_(&[return_value]);
         builder.finalize();
