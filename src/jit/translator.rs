@@ -175,8 +175,58 @@ impl<'a> ExprTranslator<'a> {
                     .unwrap_or_else(|| panic!("Variable {} does not exist", identifier));
                 Ok(Some(self.builder.use_var(*variable)))
             }
-            evalexpr::Operator::FunctionIdentifier { identifier } => Ok(Some(self.translate_call(&identifier, node.children())?)),
+            evalexpr::Operator::FunctionIdentifier { identifier } => {
+                let Some(root) = node.children().first() else {
+                    return Err(EvalexprCompError::MalformedOperatorTree(node.clone()));
+                };
+                if *root.operator() != evalexpr::Operator::RootNode {
+                    return Err(EvalexprCompError::MalformedOperatorTree(node.clone()));
+                };
+                let Some(maybe_tuple) = root.children().first() else {
+                    return Err(EvalexprCompError::MalformedOperatorTree(node.clone()));
+                };
+                let arguments = match maybe_tuple.operator() {
+                    evalexpr::Operator::Tuple => {
+                        let mut arguments = Vec::new();
+                        for node in maybe_tuple.children() {
+                            arguments.push(self.translate_operator(node)?);
+                        }
+                        arguments
+                            .iter()
+                            .map(|val| {
+                                val.ok_or_else(|| {
+                                    EvalexprCompError::ExpressionEvaluatesToNoValue(
+                                        maybe_tuple.clone(),
+                                    )
+                                })
+                            })
+                            .collect::<Result<Box<[Value]>, EvalexprCompError>>()?
+                    }
+                    _ => {
+                        let Some(value) = self.translate_operator(maybe_tuple)? else {
+                            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
+                                maybe_tuple.clone(),
+                            ));
+                        };
+                        Box::new([value])
+                    }
+                };
+
+                println!("args: {:?}", arguments);
+
+                Ok(Some(self.function_call(&identifier, &arguments)?))
+            }
         }
+    }
+
+    fn function_call(
+        &mut self,
+        identifier: &str,
+        params: &[Value],
+    ) -> Result<Value, EvalexprCompError> {
+        let (func_ref, _) = self.declare_function(identifier)?;
+        let call = self.builder.ins().call(func_ref, &params);
+        Ok(self.builder.inst_results(call)[0])
     }
 
     fn translate_call(

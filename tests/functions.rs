@@ -53,7 +53,11 @@ fn ceil() {
 #[test]
 #[ignore = "test not yet implemented"]
 fn if_function() {
-    todo!()
+    let func = compile_expression!("case(is_normal(x), x, 0.0)", (x) -> f32).unwrap();
+    let result = func.execute(2.5);
+    assert_eq!(result, 2.5);
+    let result = func.execute(f32::INFINITY);
+    assert_eq!(result, 0.0);
 }
 
 #[test]
@@ -148,9 +152,11 @@ fn exp2() {
 }
 
 #[test]
-#[ignore = "test not yet implemented"]
+#[ignore = "test process is not yet sound"]
 fn pow() {
-    todo!()
+    let func = compile_expression!("pow(x, 2.5)", (x) -> f32).unwrap();
+    let result = func.execute(2.0);
+    assert_eq!(result, f32::powf(2.0, 2.5)); 
 }
 
 #[test]
@@ -160,3 +166,12 @@ fn cos() {
     let result = func.execute(1.0);
     assert_eq!(result, f32::cos(1.0)); // TODO: fix non deterministic precision
 }
+
+#[test]
+#[ignore = "test process is not yet sound"]
+fn sin() {
+    let func = compile_expression!("sin(x)", (x) -> f32).unwrap();
+    let result = func.execute(1.0);
+    assert_eq!(result, f32::sin(1.0)); // TODO: fix non deterministic precision
+}
+
