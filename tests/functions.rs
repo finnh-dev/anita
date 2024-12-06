@@ -112,7 +112,7 @@ fn is_normal() {
 fn ln() {
     let func = compile_expression!("ln(x)", (x) -> f32).unwrap();
     let result = func.execute(1.0);
-    assert_eq!(result, f32::ln(1.0)); // TODO: fix non deterministic precision 
+    assert_eq!(result, f32::ln(1.0)); // TODO: fix non deterministic precision
 }
 
 #[test]
@@ -120,7 +120,7 @@ fn ln() {
 fn log2() {
     let func = compile_expression!("log2(x)", (x) -> f32).unwrap();
     let result = func.execute(1.0);
-    assert_eq!(result, f32::log2(1.0)); // TODO: fix non deterministic precision 
+    assert_eq!(result, f32::log2(1.0)); // TODO: fix non deterministic precision
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn log2() {
 fn log10() {
     let func = compile_expression!("log10(x)", (x) -> f32).unwrap();
     let result = func.execute(1.0);
-    assert_eq!(result, f32::log10(1.0)); // TODO: fix non deterministic precision 
+    assert_eq!(result, f32::log10(1.0)); // TODO: fix non deterministic precision
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn log10() {
 fn exp() {
     let func = compile_expression!("exp(x)", (x) -> f32).unwrap();
     let result = func.execute(1.0);
-    assert_eq!(result, f32::exp(1.0)); // TODO: fix non deterministic precision 
+    assert_eq!(result, f32::exp(1.0)); // TODO: fix non deterministic precision
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn exp() {
 fn exp2() {
     let func = compile_expression!("exp2(x)", (x) -> f32).unwrap();
     let result = func.execute(1.0);
-    assert_eq!(result, f32::exp2(1.0)); // TODO: fix non deterministic precision 
+    assert_eq!(result, f32::exp2(1.0)); // TODO: fix non deterministic precision
 }
 
 #[test]
@@ -158,5 +158,5 @@ fn pow() {
 fn cos() {
     let func = compile_expression!("cos(x)", (x) -> f32).unwrap();
     let result = func.execute(1.0);
-    assert_eq!(result, f32::cos(1.0)); // TODO: fix non deterministic precision 
+    assert_eq!(result, f32::cos(1.0)); // TODO: fix non deterministic precision
 }

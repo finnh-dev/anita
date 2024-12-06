@@ -1,20 +1,31 @@
 use std::collections::HashMap;
 
-use cranelift::{codegen::ir::FuncRef, prelude::{types::I64, FunctionBuilder, InstBuilder, Type, Value, Variable}};
+use cranelift::{
+    codegen::ir::FuncRef,
+    prelude::{types::I64, FunctionBuilder, InstBuilder, Type, Value, Variable},
+};
 use cranelift_jit::JITModule;
+use cranelift_module::Module;
 use evalexpr::{EvalexprError, Node};
 
-use super::EvalexprCompError;
+use super::{math::functions::get_function_signature, EvalexprCompError};
 
 pub(super) struct ExprTranslator<'a> {
     pub(super) builder: FunctionBuilder<'a>,
     pub(super) variables: HashMap<String, Variable>,
-    pub(super) functions: HashMap<String, FuncRef>,
+    pub(super) functions: HashMap<String, (FuncRef, usize)>,
     pub(super) module: &'a mut JITModule,
 }
 
 impl<'a> ExprTranslator<'a> {
-    pub fn deconstruct(self) -> (FunctionBuilder<'a>, HashMap<String, Variable>, HashMap<String, FuncRef>, &'a mut JITModule) {
+    pub fn deconstruct(
+        self,
+    ) -> (
+        FunctionBuilder<'a>,
+        HashMap<String, Variable>,
+        HashMap<String, (FuncRef, usize)>,
+        &'a mut JITModule,
+    ) {
         (self.builder, self.variables, self.functions, self.module)
     }
 
@@ -80,14 +91,8 @@ impl<'a> ExprTranslator<'a> {
                     op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
             }
-            evalexpr::Operator::Mod => {
-                let (_lhs, _rhs) = self.binary_operation(node)?;
-                todo!()
-            }
-            evalexpr::Operator::Exp => {
-                let (_lhs, _rhs) = self.binary_operation(node)?;
-                todo!()
-            }
+            evalexpr::Operator::Mod => Ok(Some(self.translate_call("modulo", node.children())?)),
+            evalexpr::Operator::Exp => Ok(Some(self.translate_call("pow", node.children())?)),
             evalexpr::Operator::Eq => todo!(),
             evalexpr::Operator::Neq => todo!(),
             evalexpr::Operator::Gt => todo!(),
@@ -170,8 +175,54 @@ impl<'a> ExprTranslator<'a> {
                     .unwrap_or_else(|| panic!("Variable {} does not exist", identifier));
                 Ok(Some(self.builder.use_var(*variable)))
             }
-            evalexpr::Operator::FunctionIdentifier { identifier: _ } => todo!(),
+            evalexpr::Operator::FunctionIdentifier { identifier } => Ok(Some(self.translate_call(&identifier, node.children())?)),
         }
+    }
+
+    fn translate_call(
+        &mut self,
+        identifier: &str,
+        params: &[Node],
+    ) -> Result<Value, EvalexprCompError> {
+        let (func_ref, _) = self.declare_function(identifier)?;
+        let params = params
+            .iter()
+            .map(|node| {
+                let Some(value) = self.translate_operator(node)? else {
+                    return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
+                        node.clone(),
+                    ));
+                };
+                Ok(value)
+            })
+            .collect::<Result<Box<[Value]>, EvalexprCompError>>()?;
+        let call = self.builder.ins().call(func_ref, &params);
+        Ok(self.builder.inst_results(call)[0])
+    }
+
+    fn declare_function(
+        &mut self,
+        identifier: &str,
+    ) -> Result<(FuncRef, usize), EvalexprCompError> {
+        let Some(func) = self.functions.get(identifier) else {
+            let Some(signature) =
+                get_function_signature(identifier, self.module.isa().default_call_conv())
+            else {
+                todo!()
+            };
+            let func_id = self.module.declare_function(
+                identifier,
+                cranelift_module::Linkage::Import,
+                &signature,
+            )?;
+            let func = (
+                self.module.declare_func_in_func(func_id, self.builder.func),
+                signature.params.len(),
+            );
+            self.functions.insert(identifier.into(), func);
+            return Ok(func);
+        };
+        Ok(func.to_owned())
     }
 
     fn binary_operation(&mut self, node: &Node) -> Result<(Value, Value), EvalexprCompError> {

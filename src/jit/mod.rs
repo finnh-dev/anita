@@ -11,9 +11,9 @@ use itertools::Itertools;
 use translator::ExprTranslator;
 use types::F32;
 
-use math::functions::get_function_addr;
-mod translator;
+use math::functions::{get_function_addr, get_function_symbols};
 mod math;
+mod translator;
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -96,8 +96,11 @@ impl Default for JIT {
         let isa = isa_builder
             .finish(settings::Flags::new(flag_builder))
             .unwrap();
-        let builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
+        let mut builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
 
+        for (ident, addr) in get_function_symbols() {
+            builder.symbol(ident, addr);
+        }
         let module = JITModule::new(builder);
         Self {
             builder_context: FunctionBuilderContext::new(),
@@ -163,15 +166,23 @@ impl JIT {
         let variables = declare_variables(&mut builder, &node, params, entry_block)?;
         let functions = HashMap::default();
 
-        let mut translator = ExprTranslator { builder, variables, functions, module: &mut self.module };
+        let mut translator = ExprTranslator {
+            builder,
+            variables,
+            functions,
+            module: &mut self.module,
+        };
 
         let Some(return_value) = translator.translate_operator(&node)? else {
             return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node));
         };
         let return_value = translator.convert_value_type(F32, return_value)?;
 
-        let (mut builder, _, _, _) = translator.deconstruct();
+        let (mut builder, _, _functions, _) = translator.deconstruct();
 
+        // for (identifier, (_, _)) in functions {
+        //     self.module.define_symbol()
+        // }
         builder.ins().return_(&[return_value]);
         builder.finalize();
 

@@ -46,6 +46,13 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
         }
     });
 
+    let func_symbols  = signatures.iter().map(|sig| {
+        let ident = Ident::new(&sig.identifier, Span::call_site());
+        quote! {
+            (stringify!(#ident), #ident as *const u8)
+        }
+    });
+
     let match_signatures = signatures.iter().map(|sig| {
         let ident = Ident::new(&sig.identifier, Span::call_site());
         let params = sig
@@ -54,10 +61,10 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
             .map(|ty| to_cranelift_parameter(ty.as_str()));
         let return_type = to_cranelift_parameter(sig.return_type.as_str());
         quote! {
-            #ident => Some(cranelift::prelude::Signature {
+            stringify!(#ident) => Some(cranelift::prelude::Signature {
                 params: std::vec![#(#params,)*],
                 returns: std::vec![#return_type],
-                call_conv: cranelift::prelude::isa::CallConv::SystemV,
+                call_conv,
             })
         } // TODO: Figure out if this is the right calling convention and if its supposed to be hardcoded
     });
@@ -74,7 +81,11 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
             }
         }
 
-        pub(crate) fn get_function_signature(identifier: &str) -> Option<cranelift::prelude::Signature> {
+        pub(crate) fn get_function_symbols() -> std::boxed::Box<[(&'static str, *const u8)]> {
+            std::boxed::Box::new([#(#func_symbols,)*])
+        }
+
+        pub(crate) fn get_function_signature(identifier: &str, call_conv: cranelift::prelude::isa::CallConv) -> Option<cranelift::prelude::Signature> {
             match identifier {
                 #(#match_signatures,)*
                 _ => None

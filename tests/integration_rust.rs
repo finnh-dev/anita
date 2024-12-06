@@ -1,7 +1,7 @@
 use core::f32;
 
-use evalexpr::build_operator_tree;
 use anita::{compile_expression, jit::EvalexprCompError};
+use evalexpr::build_operator_tree;
 
 #[test]
 fn owned_input() {
@@ -32,7 +32,6 @@ fn division_by_zero() {
     let result = func.execute(0.0);
     assert!(result.is_infinite());
 }
-
 
 #[test]
 fn sum_absorbed() {
