@@ -88,8 +88,8 @@ fn ceil() {
 }
 
 #[test]
-fn case() {
-    let func = compile_expression!("case(is_normal(x), x, 0.0)", (x) -> f32).unwrap();
+fn if_function() {
+    let func = compile_expression!("if(is_normal(x), x, 0.0)", (x) -> f32).unwrap();
     let result = func.execute(2.5);
     assert_eq!(result, 2.5);
     let result = func.execute(f32::INFINITY);

@@ -1,14 +1,13 @@
 use proc_macro::TokenStream;
-use proc_macro2::Span;
 use quote::quote;
 use syn::{
-    parse_macro_input, File, FnArg, Ident, ItemFn, PatType, Path, PathSegment, ReturnType, Type,
-    TypePath,
+    parse_macro_input, Expr, File, FnArg, Ident, ItemFn, Lit, Meta, PatType, Path, PathSegment, ReturnType, Type, TypePath
 };
 
 #[derive(Debug)]
 struct FnSignature {
-    identifier: String,
+    name: Ident,
+    identifier: Ident,
     params: Vec<String>,
     return_type: String,
 }
@@ -33,6 +32,8 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
     };
 
     let extern_c_functions = functions.iter().map(|function| {
+        let mut function = (**function).clone();
+        function.attrs.clear();
         quote! {
             #[no_mangle]
             pub extern "C" #function
@@ -45,28 +46,30 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
         .collect();
 
     let match_func_addr = signatures.iter().map(|sig| {
-        let ident = Ident::new(&sig.identifier, Span::call_site());
+        let name = &sig.name;
+        let ident = &sig.identifier;
         quote! {
-            stringify!(#ident) => Some(#ident as *const u8)
+            stringify!(#name) => Some(#ident as *const u8)
         }
     });
 
     let func_symbols = signatures.iter().map(|sig| {
-        let ident = Ident::new(&sig.identifier, Span::call_site());
+        let name = &sig.name;
+        let ident = &sig.identifier;
         quote! {
-            (stringify!(#ident), #ident as *const u8)
+            (stringify!(#name), #ident as *const u8)
         }
     });
 
     let match_signatures = signatures.iter().map(|sig| {
-        let ident = Ident::new(&sig.identifier, Span::call_site());
+        let name = &sig.name;
         let params = sig
             .params
             .iter()
             .map(|ty| to_cranelift_parameter(ty.as_str()));
         let return_type = to_cranelift_parameter(sig.return_type.as_str());
         quote! {
-            stringify!(#ident) => Some(cranelift::prelude::Signature {
+            stringify!(#name) => Some(cranelift::prelude::Signature {
                 params: std::vec![#(#params,)*],
                 returns: std::vec![#return_type],
                 call_conv,
@@ -98,8 +101,31 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
     .into()
 }
 
+fn get_name_attribute(function: &ItemFn) -> Option<Ident> {
+    for attribute in &function.attrs {
+        match &attribute.meta {
+            Meta::NameValue(meta_name_value) => {
+                if !meta_name_value.path.is_ident("name") {
+                    continue;
+                }
+                let Expr::Lit(literal) = &meta_name_value.value else {
+                    continue;
+                };
+                let Lit::Str(string_literal) = &literal.lit else {
+                    continue;
+                };
+                let identifier = Ident::new(&string_literal.value(), string_literal.span());
+                return Some(identifier);
+            },
+            _ => continue,
+        }
+    };
+    None
+}
+
 fn extract_signature(function: &ItemFn) -> FnSignature {
-    let identifier = format!("{}", function.sig.ident);
+    let identifier = function.sig.ident.clone();
+    let name = get_name_attribute(function).unwrap_or(identifier.clone());
     let mut params = Vec::new();
     for param in &function.sig.inputs {
         let FnArg::Typed(PatType { ty, .. }) = param else {
@@ -137,6 +163,7 @@ fn extract_signature(function: &ItemFn) -> FnSignature {
     let return_type = format!("{}", ident);
 
     FnSignature {
+        name,
         identifier,
         params,
         return_type,
