@@ -91,7 +91,7 @@ impl<'a> ExprTranslator<'a> {
                     op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
             }
-            evalexpr::Operator::Mod => Ok(Some(self.translate_call("modulo", node.children())?)),
+            evalexpr::Operator::Mod => Ok(Some(self.translate_call("mod", node.children())?)),
             evalexpr::Operator::Exp => Ok(Some(self.translate_call("pow", node.children())?)),
             evalexpr::Operator::Eq => todo!(),
             evalexpr::Operator::Neq => todo!(),
@@ -152,7 +152,6 @@ impl<'a> ExprTranslator<'a> {
                 for ast in node.children() {
                     return_value = self.translate_operator(ast)?;
                 }
-                println!("chain return: {:?}", return_value);
                 Ok(return_value)
             }
             evalexpr::Operator::Const { value } => match value {
@@ -211,8 +210,6 @@ impl<'a> ExprTranslator<'a> {
                         Box::new([value])
                     }
                 };
-
-                println!("args: {:?}", arguments);
 
                 Ok(Some(self.function_call(&identifier, &arguments)?))
             }
