@@ -26,33 +26,33 @@ Type | Status | Note
 ### Operators
 Operator | Status | Description |
 |----------|------------|-------------|
-| ^ | untested | Exponentiation |
-| * | supported | Product |
-| / | supported | Division |
-| % | supported | Modulo |
-| + | supported | Sum |
-| - | supported | Difference |
-| < | planned | Lower than |
-| \> | planned | Greater than |
-| <= | planned | Lower than or equal |
-| \>= | planned | Greater than or equal |
-| == | planned | Equal |
-| != | planned | Not equal |
-| && | planned | Logical and |
+| ^   | supported | Exponentiation |
+| *   | supported | Product |
+| /   | supported | Division |
+| %   | supported | Modulo |
+| +   | supported | Sum |
+| -   | supported | Difference |
+| <   | planned   | Lower than |
+| \>  | planned   | Greater than |
+| <=  | planned   | Lower than or equal |
+| \>= | planned   | Greater than or equal |
+| ==  | planned   | Equal |
+| !=  | planned   | Not equal |
+| &&  | planned   | Logical and |
 | &#124;&#124; | planned | Logical or |
-| = | supported | Assignment |
-| += | planned | Sum-Assignment or String-Concatenation-Assignment |
-| -= | planned | Difference-Assignment |
-| *= | planned | Product-Assignment |
-| /= | planned | Division-Assignment |
-| %= | planned | Modulo-Assignment |
-| ^= | planned | Exponentiation-Assignment |
-| &&= | planned | Logical-And-Assignment |
-| &#124;&#124;= | planned | Logical-Or-Assignment |
-| , | unsupported | Aggregation |
-| ; | supported | Expression Chaining |
+| =   | supported | Assignment |
+| -=  | planned   | Difference-Assignment |
+| +=  | planned   | Sum-Assignment or String-Concatenation-Assignment |
+| *=  | planned   | Product-Assignment |
+| /=  | planned   | Division-Assignment |
+| %=  | planned   | Modulo-Assignment |
+| ^=  | planned   | Exponentiation-Assignment |
+| &&= | planned   | Logical-And-Assignment |
+| &#124;&#124;=   | planned | Logical-Or-Assignment |
+| ;   | supported | Expression Chaining |
+| ,   | unsupported | Aggregation |
 | - (unary) | supported | Negation |
-| ! | unsupported | Logical not |
+| !   | unsupported | Logical not |
 
 ### Functions
 | Identifier           | Status        | Argument Amount | Argument Types                | Description |
@@ -90,7 +90,7 @@ Operator | Status | Description |
 | `sqrt`               | supported     | 1               | Float                         | Returns the square root of a number. Returns NaN for a negative number |
 | `cbrt`               | supported     | 1               | Float                         | Returns the cube root of a number |
 | `hypot`              | supported     | 2               | Float                         | Calculates the length of the hypotenuse of a right-angle triangle given legs of length given by the two arguments |
-| `abs`                | supported     | 1               | Float                         | Returns the absolute value of a number, returning an integer if the argument was an integer, and a float otherwise |
+| `abs`                | supported     | 1               | Float                         | Returns the absolute value of a float |
 | `len`                | unsupported   | 1               | String/Tuple                  | Returns the character length of a string, or the amount of elements in a tuple (not recursively) |
 | `contains`           | unsupported   | 2               | Tuple, any non-tuple          | Returns true if second argument exists in first tuple argument. |
 | `contains_any`       | unsupported   | 2               | Tuple, Tuple of any non-tuple | Returns true if one of the values in the second tuple argument exists in first tuple argument. |
