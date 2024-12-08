@@ -61,7 +61,7 @@ Operator | Status | Description |
 | `floor`              | supported     | 1               | Numeric                       | Returns the largest integer less than or equal to a number |
 | `round`              | supported     | 1               | Numeric                       | Returns the nearest integer to a number. Rounds half-way cases away from 0.0 |
 | `ceil`               | supported     | 1               | Numeric                       | Returns the smallest integer greater than or equal to a number |
-| `case`                 | supported     | 3               | Boolean, Any, Any             | If the first argument is true, returns the second argument, otherwise, returns the third  |
+| `if`                 | supported     | 3               | Boolean, Any, Any             | If the first argument is true, returns the second argument, otherwise, returns the third  |
 | `is_nan`       | supported     | 1               | Numeric                       | Returns true if the argument is the floating-point value NaN, false if it is another floating-point value, and throws an error if it is not a number  |
 | `is_finite`    | supported     | 1               | Numeric                       | Returns true if the argument is a finite floating-point number, false otherwise  |
 | `is_infinite`  | supported     | 1               | Numeric                       | Returns true if the argument is an infinite floating-point number, false otherwise  |
