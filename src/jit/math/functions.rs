@@ -6,7 +6,7 @@ internal_macros::link_cranelift! {
     fn max(x: f32, y: f32) -> f32 {
         x.max(y)
     }
-    
+
     fn floor(x: f32) -> f32 {
         x.floor()
     }

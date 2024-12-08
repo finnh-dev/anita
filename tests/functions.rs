@@ -147,7 +147,6 @@ fn is_normal() {
     assert!(result == 0.0);
 }
 
-
 #[test]
 fn ln() {
     test_unspecified_precision_function("ln(x)", f32::ln);
