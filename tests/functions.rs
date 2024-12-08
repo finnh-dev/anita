@@ -19,7 +19,6 @@ const TEST_VALUES: [(&str, f32); 9] = [
     ("E", f32::consts::E),
 ];
 
-
 #[test]
 fn min() {
     let func = compile_expression!("min(x, 1)", (x) -> f32).unwrap();

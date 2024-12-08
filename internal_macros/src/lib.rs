@@ -12,7 +12,6 @@ struct FnSignature {
     params: Vec<String>,
     return_type: String,
 }
-
 #[proc_macro]
 pub fn link_cranelift(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as File);
