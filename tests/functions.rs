@@ -30,7 +30,7 @@ const TEST_VALUES: [(&str, f32); 17] = [
 fn test_function(expression: &str, function: fn(f32) -> f32) {
     let func = compile_expression!(expression, (x) -> f32).unwrap();
     for (c, test_value) in TEST_VALUES {
-        let result = func.execute(test_value);
+        let result = func(test_value);
         let expected = function(test_value);
         println!("{c}: {result} == {expected}");
         assert!(test_eq(result, expected));
@@ -40,7 +40,7 @@ fn test_function(expression: &str, function: fn(f32) -> f32) {
 fn test_unspecified_precision_function(expression: &str, function: fn(f32) -> f32) {
     let func = compile_expression!(expression, (x) -> f32).unwrap();
     for (c, test_value) in TEST_VALUES {
-        let result = func.execute(test_value);
+        let result = func(test_value);
         let expected = function(test_value);
         if test_eq(result, expected) {
             println!("{c}: {result} == {expected}");
@@ -90,42 +90,42 @@ fn ceil() {
 #[test]
 fn if_function() {
     let func = compile_expression!("if(is_normal(x), x, 0.0)", (x) -> f32).unwrap();
-    let result = func.execute(2.5);
+    let result = func(2.5);
     assert_eq!(result, 2.5);
-    let result = func.execute(f32::INFINITY);
+    let result = func(f32::INFINITY);
     assert_eq!(result, 0.0);
 }
 
 #[test]
 fn is_nan() {
     let func = compile_expression!("is_nan(x)", (x) -> f32).unwrap();
-    let result = func.execute(f32::NAN);
+    let result = func(f32::NAN);
     assert!(result == 1.0);
-    let result = func.execute(1.0);
+    let result = func(1.0);
     assert!(result == 0.0);
 }
 
 #[test]
 fn is_finite() {
     let func = compile_expression!("is_finite(x)", (x) -> f32).unwrap();
-    let result = func.execute(1.0);
+    let result = func(1.0);
     assert!(result == 1.0);
-    let result = func.execute(f32::INFINITY);
+    let result = func(f32::INFINITY);
     assert!(result == 0.0);
-    let result = func.execute(f32::NAN);
+    let result = func(f32::NAN);
     assert!(result == 0.0);
 }
 
 #[test]
 fn is_infinite() {
     let func = compile_expression!("is_infinite(x)", (x) -> f32).unwrap();
-    let result = func.execute(f32::INFINITY);
+    let result = func(f32::INFINITY);
     assert!(result == 1.0);
-    let result = func.execute(f32::NEG_INFINITY);
+    let result = func(f32::NEG_INFINITY);
     assert!(result == 1.0);
-    let result = func.execute(f32::NAN);
+    let result = func(f32::NAN);
     assert!(result == 0.0);
-    let result = func.execute(1.0);
+    let result = func(1.0);
     assert!(result == 0.0);
     let _ = 1_f32.is_infinite();
 }
@@ -133,17 +133,17 @@ fn is_infinite() {
 #[test]
 fn is_normal() {
     let func = compile_expression!("is_normal(x)", (x) -> f32).unwrap();
-    let result = func.execute(MIN);
+    let result = func(MIN);
     assert!(result == 1.0);
-    let result = func.execute(MAX);
+    let result = func(MAX);
     assert!(result == 1.0);
-    let result = func.execute(ZERO);
+    let result = func(ZERO);
     assert!(result == 0.0);
-    let result = func.execute(LOWER_THAN_MIN);
+    let result = func(LOWER_THAN_MIN);
     assert!(result == 0.0);
-    let result = func.execute(f32::INFINITY);
+    let result = func(f32::INFINITY);
     assert!(result == 0.0);
-    let result = func.execute(f32::NAN);
+    let result = func(f32::NAN);
     assert!(result == 0.0);
 }
 

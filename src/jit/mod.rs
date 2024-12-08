@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    mem,
+    mem, ops::Deref,
 };
 
 use cranelift::prelude::*;
@@ -73,9 +73,17 @@ pub struct EvalexprFunction<I, O> {
     function_pointer: fn(I) -> O,
 }
 
-impl<I, O> EvalexprFunction<I, O> {
-    pub fn execute(&self, x: I) -> O {
-        (self.function_pointer)(x)
+// impl<I, O> EvalexprFunction<I, O> {
+//     pub fn execute(&self, x: I) -> O {
+//         (self.function_pointer)(x)
+//     }
+// }
+
+impl<I, O> Deref for EvalexprFunction<I, O> {
+    type Target = fn(I) -> O;
+    
+    fn deref(&self) -> &Self::Target {
+        &self.function_pointer
     }
 }
 
