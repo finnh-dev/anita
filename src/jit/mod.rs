@@ -8,27 +8,27 @@ use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{FuncId, Module, ModuleError};
 use evalexpr::{build_operator_tree, EvalexprError, Node};
 use itertools::Itertools;
+use translator::ExprTranslator;
 use types::F32;
 
-pub mod macros {
-    // #[macro_export]
-    // #[doc(hidden)]
-    // macro_rules! __to_f32 {
-    //     ($_:ident) => {f32} 
-    // }
-    
-    #[macro_export]
-    macro_rules! compile_expression {
-        (@to_f32 $_:ident) => {f32};
-        ($expression:ident, ($($parameter:ident),+) -> ($($return:ty),+)) => {
-            {
-                let jit = JIT::default();
-                #[allow(unused_parens)] // necessary due to https://github.com/rust-lang/rust/issues/73068
-                let function: Result<EvalexprFunction<($(compile_expression!(@to_f32 $parameter)),+), ($($return),+)>, EvalexprCompError> = jit.compile($expression, &[$( stringify!($parameter) ),*]);
-                function
-            }
-        };
-    }
+use math::functions::{get_function_addr, get_function_symbols};
+mod math;
+mod translator;
+
+#[macro_export]
+macro_rules! compile_expression {
+    (@to_f32 $_:ident) => {f32}; // TODO: investigate and potentially fix exposure of helper pattern outside this module
+
+    ($expression:expr, ($($parameter:ident),+) -> f32) => {
+        {
+            use $crate::jit::{EvalexprFunction, EvalexprCompError, JIT};
+
+            let jit = JIT::default();
+            #[allow(unused_parens)] // necessary due to https://github.com/rust-lang/rust/issues/73068
+            let function: Result<EvalexprFunction<($(compile_expression!(@to_f32 $parameter)),+), f32>, EvalexprCompError> = jit.compile($expression, &[$( stringify!($parameter) ),*]);
+            function
+        }
+    };
 }
 
 #[derive(Debug)]
@@ -36,10 +36,18 @@ pub enum EvalexprCompError {
     EvalexprError(EvalexprError),
     CompilerError(ModuleError),
     UseOfUninitializedVariables(Box<[String]>),
+    UnsupportedTypeConversion {
+        target_type: Type,
+        source_type: Type,
+    },
+    ExpressionEvaluatesToNoValue(Node),
+    UseOfUnsupportedType(Type),
+    MalformedOperatorTree(Node),
+    VariableNotFound(String),
 }
 
 impl EvalexprCompError {
-    pub fn use_of_uninitialized_variables(uninitialized: Box<[&&str]>) -> EvalexprCompError {
+    pub fn use_of_uninitialized_variables(uninitialized: &[&&str]) -> EvalexprCompError {
         EvalexprCompError::UseOfUninitializedVariables(
             uninitialized.iter().map(|x| x.to_string()).collect(),
         )
@@ -58,7 +66,7 @@ impl From<ModuleError> for EvalexprCompError {
     }
 }
 
-// TODO: make generic/implement constructor macro for different function signatures
+#[derive(Debug)]
 pub struct EvalexprFunction<I, O> {
     #[allow(unused)]
     memory_region: Box<dyn std::any::Any>,
@@ -71,19 +79,9 @@ impl<I, O> EvalexprFunction<I, O> {
     }
 }
 
-/// The basic JIT class.
 pub struct JIT {
-    /// The function builder context, which is reused across multiple
-    /// FunctionBuilder instances.
     builder_context: FunctionBuilderContext,
-
-    /// The main Cranelift context, which holds the state for codegen. Cranelift
-    /// separates this from `Module` to allow for parallel compilation, with a
-    /// context per thread, though this isn't in the simple demo here.
     ctx: codegen::Context,
-
-    /// The module, with the jit backend, which manages the JIT'd
-    /// functions.
     module: JITModule,
 }
 
@@ -98,8 +96,11 @@ impl Default for JIT {
         let isa = isa_builder
             .finish(settings::Flags::new(flag_builder))
             .unwrap();
-        let builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
+        let mut builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
 
+        for (ident, addr) in get_function_symbols() {
+            builder.symbol(ident, addr);
+        }
         let module = JITModule::new(builder);
         Self {
             builder_context: FunctionBuilderContext::new(),
@@ -113,7 +114,7 @@ impl JIT {
     fn finalize<I, O>(self, func_id: FuncId) -> EvalexprFunction<I, O> {
         let code_ptr = self.module.get_finalized_function(func_id);
 
-        let function_pointer = unsafe { mem::transmute::<_, fn(I) -> O>(code_ptr) };
+        let function_pointer = unsafe { mem::transmute::<*const u8, fn(I) -> O>(code_ptr) };
 
         let memory_region = Box::new(self.module);
         EvalexprFunction {
@@ -122,12 +123,13 @@ impl JIT {
         }
     }
 
-    pub fn compile<I, O>(
+    pub fn compile<E: AsRef<str>, I, O>(
         mut self,
-        expression: String,
+        expression: E,
         params: &[&str],
     ) -> Result<EvalexprFunction<I, O>, EvalexprCompError> {
-        let ast = build_operator_tree(&expression)?;
+        let _ = get_function_addr("test_fn");
+        let ast = build_operator_tree(expression.as_ref())?;
 
         self.translate(ast, params)?;
 
@@ -162,12 +164,25 @@ impl JIT {
         builder.seal_block(entry_block);
 
         let variables = declare_variables(&mut builder, &node, params, entry_block)?;
+        let functions = HashMap::default();
 
-        let mut translator = ExprTranslator { builder, variables };
+        let mut translator = ExprTranslator {
+            builder,
+            variables,
+            functions,
+            module: &mut self.module,
+        };
 
-        let return_value = translator.translate_operator(&node)?;
-        let mut builder = translator.builder;
+        let Some(return_value) = translator.translate_operator(&node)? else {
+            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node));
+        };
+        let return_value = translator.convert_value_type(F32, return_value)?;
 
+        let (mut builder, _, _functions, _) = translator.deconstruct();
+
+        // for (identifier, (_, _)) in functions {
+        //     self.module.define_symbol()
+        // }
         builder.ins().return_(&[return_value]);
         builder.finalize();
 
@@ -198,7 +213,7 @@ fn declare_variables(
         .collect();
     if uninitialized.len() > 0 {
         return Err(EvalexprCompError::use_of_uninitialized_variables(
-            uninitialized,
+            &uninitialized,
         ));
     }
 
@@ -216,7 +231,7 @@ fn declare_variables(
         .collect();
     if uninitialized.len() > 0 {
         return Err(EvalexprCompError::use_of_uninitialized_variables(
-            uninitialized,
+            &uninitialized,
         ));
     }
 
@@ -242,86 +257,8 @@ fn declare_variable(
     let var = Variable::new(*index);
     if !variables.contains_key(name) {
         variables.insert(name.into(), var);
-        builder.declare_var(var, F32);
+        builder.declare_var(var, F32); // TODO: allow different variable types or make default behavior
         *index += 1;
     }
     var
-}
-
-struct ExprTranslator<'a> {
-    builder: FunctionBuilder<'a>,
-    variables: HashMap<String, Variable>,
-}
-
-impl<'a> ExprTranslator<'a> {
-    pub fn translate_operator(&mut self, node: &Node) -> Result<Value, EvalexprError> {
-        match node.operator() {
-            evalexpr::Operator::RootNode => {
-                let children = node.children();
-                if children.len() != 1 {
-                    return Err(EvalexprError::wrong_operator_argument_amount(
-                        children.len(),
-                        1,
-                    ));
-                }
-                Ok(self.translate_operator(&children[0])?)
-            }
-            evalexpr::Operator::Add => {
-                let children = node.children();
-                if children.len() != 2 {
-                    return Err(EvalexprError::wrong_operator_argument_amount(
-                        children.len(),
-                        2,
-                    ));
-                }
-                let (lhs, rhs) = (&children[0], &children[1]);
-                let lhs = self.translate_operator(lhs)?;
-                let rhs = self.translate_operator(rhs)?;
-                Ok(self.builder.ins().fadd(lhs, rhs))
-            }
-            evalexpr::Operator::Sub => todo!(),
-            evalexpr::Operator::Neg => todo!(),
-            evalexpr::Operator::Mul => todo!(),
-            evalexpr::Operator::Div => todo!(),
-            evalexpr::Operator::Mod => todo!(),
-            evalexpr::Operator::Exp => todo!(),
-            evalexpr::Operator::Eq => todo!(),
-            evalexpr::Operator::Neq => todo!(),
-            evalexpr::Operator::Gt => todo!(),
-            evalexpr::Operator::Lt => todo!(),
-            evalexpr::Operator::Geq => todo!(),
-            evalexpr::Operator::Leq => todo!(),
-            evalexpr::Operator::And => todo!(),
-            evalexpr::Operator::Or => todo!(),
-            evalexpr::Operator::Not => todo!(),
-            evalexpr::Operator::Assign => todo!(),
-            evalexpr::Operator::AddAssign => todo!(),
-            evalexpr::Operator::SubAssign => todo!(),
-            evalexpr::Operator::MulAssign => todo!(),
-            evalexpr::Operator::DivAssign => todo!(),
-            evalexpr::Operator::ModAssign => todo!(),
-            evalexpr::Operator::ExpAssign => todo!(),
-            evalexpr::Operator::AndAssign => todo!(),
-            evalexpr::Operator::OrAssign => todo!(),
-            evalexpr::Operator::Tuple => todo!(),
-            evalexpr::Operator::Chain => todo!(),
-            evalexpr::Operator::Const { value } => match value {
-                evalexpr::Value::String(_) => todo!(),
-                evalexpr::Value::Float(value) => Ok(self.builder.ins().f32const(*value as f32)),
-                evalexpr::Value::Int(value) => Ok(self.builder.ins().f32const(*value as f32)),
-                evalexpr::Value::Boolean(_) => todo!(),
-                evalexpr::Value::Tuple(_) => todo!(),
-                evalexpr::Value::Empty => todo!(),
-            },
-            evalexpr::Operator::VariableIdentifierWrite { identifier }
-            | evalexpr::Operator::VariableIdentifierRead { identifier } => {
-                let variable = self
-                    .variables
-                    .get(identifier)
-                    .expect(&format!("Variable {} does not exist", identifier));
-                Ok(self.builder.use_var(*variable))
-            }
-            evalexpr::Operator::FunctionIdentifier { identifier: _ } => todo!(),
-        }
-    }
 }
