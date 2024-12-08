@@ -58,10 +58,14 @@ Operator | Status | Description |
 |----------------------|-------------|-----------------|-------------------------------|-------------|
 | `min`                | supported     | 2            | Numeric                       | Returns the minimum of the arguments |
 | `max`                | supported     | 2            | Numeric                       | Returns the maximum of the arguments |
+| `len`                | unsupported | 1               | String/Tuple                  | Returns the character length of a string, or the amount of elements in a tuple (not recursively) |
 | `floor`              | supported     | 1               | Numeric                       | Returns the largest integer less than or equal to a number |
 | `round`              | supported     | 1               | Numeric                       | Returns the nearest integer to a number. Rounds half-way cases away from 0.0 |
 | `ceil`               | supported     | 1               | Numeric                       | Returns the smallest integer greater than or equal to a number |
 | `case`                 | supported     | 3               | Boolean, Any, Any             | If the first argument is true, returns the second argument, otherwise, returns the third  |
+| `contains`           | unsupported | 2               | Tuple, any non-tuple          | Returns true if second argument exists in first tuple argument. |
+| `contains_any`       | unsupported | 2               | Tuple, Tuple of any non-tuple | Returns true if one of the values in the second tuple argument exists in first tuple argument. |
+| `typeof`             | unsupported | 1               | Any                           | returns "string", "float", "int", "boolean", "tuple", or "empty" depending on the type of the argument  |
 | `is_nan`       | supported     | 1               | Numeric                       | Returns true if the argument is the floating-point value NaN, false if it is another floating-point value, and throws an error if it is not a number  |
 | `is_finite`    | supported     | 1               | Numeric                       | Returns true if the argument is a finite floating-point number, false otherwise  |
 | `is_infinite`  | supported     | 1               | Numeric                       | Returns true if the argument is an infinite floating-point number, false otherwise  |
@@ -89,11 +93,7 @@ Operator | Status | Description |
 | `sqrt`         | supported     | 1               | Numeric                       | Returns the square root of a number. Returns NaN for a negative number |
 | `cbrt`         | supported     | 1               | Numeric                       | Returns the cube root of a number |
 | `hypot`        | untested     | 2               | Numeric                       | Calculates the length of the hypotenuse of a right-angle triangle given legs of length given by the two arguments |
-| `abs`          | supported     | 1               | Numeric                       | Returns the absolute value of a number, returning an integer if the argument was an integer, and a float otherwise |
-| `len`                | unsupported | 1               | String/Tuple                  | Returns the character length of a string, or the amount of elements in a tuple (not recursively) |
-| `contains`           | unsupported | 2               | Tuple, any non-tuple          | Returns true if second argument exists in first tuple argument. |
-| `contains_any`       | unsupported | 2               | Tuple, Tuple of any non-tuple | Returns true if one of the values in the second tuple argument exists in first tuple argument. |
-| `typeof`             | unsupported | 1               | Any                           | returns "string", "float", "int", "boolean", "tuple", or "empty" depending on the type of the argument  |
+| `abs`          | untested     | 1               | Numeric                       | Returns the absolute value of a number, returning an integer if the argument was an integer, and a float otherwise |
 | `str::regex_matches` | unsupported | 2               | String, String                | Returns true if the first argument matches the regex in the second argument (Requires `regex_support` feature flag) |
 | `str::regex_replace` | unsupported | 3               | String, String, String        | Returns the first argument with all matches of the regex in the second argument replaced by the third argument (Requires `regex_support` feature flag) |
 | `str::to_lowercase`  | unsupported | 1               | String                        | Returns the lower-case version of the string |
