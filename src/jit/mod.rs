@@ -21,11 +21,11 @@ macro_rules! compile_expression {
 
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
-            use $crate::jit::{EvalexprFunction, EvalexprCompError, JIT};
+            use $crate::jit::{CompiledFunction, EvalexprCompError, JIT};
 
             let jit = JIT::default();
             #[allow(unused_parens)] // necessary due to https://github.com/rust-lang/rust/issues/73068
-            let function: Result<EvalexprFunction<($(compile_expression!(@to_f32 $parameter)),+), f32>, EvalexprCompError> = jit.compile($expression, &[$( stringify!($parameter) ),*]);
+            let function: Result<CompiledFunction<($(compile_expression!(@to_f32 $parameter)),+), f32>, EvalexprCompError> = jit.compile($expression, &[$( stringify!($parameter) ),*]);
             function
         }
     };
@@ -67,19 +67,13 @@ impl From<ModuleError> for EvalexprCompError {
 }
 
 #[derive(Debug)]
-pub struct EvalexprFunction<I, O> {
+pub struct CompiledFunction<I, O> {
     #[allow(unused)]
     memory_region: Box<dyn std::any::Any>,
     function_pointer: fn(I) -> O,
 }
 
-// impl<I, O> EvalexprFunction<I, O> {
-//     pub fn execute(&self, x: I) -> O {
-//         (self.function_pointer)(x)
-//     }
-// }
-
-impl<I, O> Deref for EvalexprFunction<I, O> {
+impl<I, O> Deref for CompiledFunction<I, O> {
     type Target = fn(I) -> O;
     
     fn deref(&self) -> &Self::Target {
@@ -119,13 +113,13 @@ impl Default for JIT {
 }
 
 impl JIT {
-    fn finalize<I, O>(self, func_id: FuncId) -> EvalexprFunction<I, O> {
+    fn finalize<I, O>(self, func_id: FuncId) -> CompiledFunction<I, O> {
         let code_ptr = self.module.get_finalized_function(func_id);
 
         let function_pointer = unsafe { mem::transmute::<*const u8, fn(I) -> O>(code_ptr) };
 
         let memory_region = Box::new(self.module);
-        EvalexprFunction {
+        CompiledFunction {
             memory_region,
             function_pointer,
         }
@@ -135,7 +129,7 @@ impl JIT {
         mut self,
         expression: E,
         params: &[&str],
-    ) -> Result<EvalexprFunction<I, O>, EvalexprCompError> {
+    ) -> Result<CompiledFunction<I, O>, EvalexprCompError> {
         let _ = get_function_addr("test_fn");
         let ast = build_operator_tree(expression.as_ref())?;
 
