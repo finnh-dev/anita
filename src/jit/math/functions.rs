@@ -39,6 +39,7 @@ internal_macros::link_cranelift! {
         a.powf(x)
     }
 
+    #[name = "mod"]
     fn modulo(x: f32, y: f32) -> f32 {
         x % y
     }
@@ -131,6 +132,7 @@ internal_macros::link_cranelift! {
         x.hypot(y)
     }
 
+    #[name = "if"]
     fn case(cond: f32, a: f32, b: f32) -> f32 {
         if cond != 0.0 {
             a
