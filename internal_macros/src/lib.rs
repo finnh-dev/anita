@@ -16,16 +16,21 @@ struct FnSignature {
 #[proc_macro]
 pub fn link_cranelift(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as File);
-    // eprintln!("ast: {:#?}", ast);
 
-    let functions: Vec<&ItemFn> = ast
+    let functions = match ast
         .items
         .iter()
         .map(|item| match item {
-            syn::Item::Fn(function) => function,
-            item => panic!("unexpected item: {:?}", item),
+            syn::Item::Fn(function) => Ok(function),
+            item => Err(syn::Error::new_spanned(item, "expected `fn ...`")
+                .to_compile_error()
+                .into()),
         })
-        .collect();
+        .collect::<Result<Vec<&ItemFn>, TokenStream>>()
+    {
+        Ok(functions) => functions,
+        Err(e) => return e,
+    };
 
     let extern_c_functions = functions.iter().map(|function| {
         quote! {
@@ -46,7 +51,7 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
         }
     });
 
-    let func_symbols  = signatures.iter().map(|sig| {
+    let func_symbols = signatures.iter().map(|sig| {
         let ident = Ident::new(&sig.identifier, Span::call_site());
         quote! {
             (stringify!(#ident), #ident as *const u8)
@@ -66,10 +71,8 @@ pub fn link_cranelift(input: TokenStream) -> TokenStream {
                 returns: std::vec![#return_type],
                 call_conv,
             })
-        } // TODO: Figure out if this is the right calling convention and if its supposed to be hardcoded
+        }
     });
-
-    // eprintln!("Functions: {:?}", signatures);
 
     quote! {
         #(#extern_c_functions)*
