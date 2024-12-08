@@ -7,7 +7,7 @@ const MAX: f32 = f32::MAX;
 const LOWER_THAN_MIN: f32 = 1.0e-40_f32;
 const ZERO: f32 = 0.0_f32;
 
-const TEST_VALUES: [(&str, f32); 9] = [
+const TEST_VALUES: [(&str, f32); 17] = [
     ("MAX", f32::MAX),
     ("MIN", f32::MIN),
     ("EPSILON", f32::EPSILON),
@@ -17,49 +17,74 @@ const TEST_VALUES: [(&str, f32); 9] = [
     ("NEG_INFINITY", f32::NEG_INFINITY),
     ("PI", f32::consts::PI),
     ("E", f32::consts::E),
+    ("ONE", 1.0),
+    ("TWO", 2.0),
+    ("ZERO", 0.0),
+    ("NEG_ONE", -1.0),
+    ("NEG_TWO", -2.0),
+    ("2.5", 2.5),
+    ("2.7", 2.7),
+    ("2.2", 2.2),
 ];
+
+fn test_function(expression: &str, function: fn(f32) -> f32) {
+    let func = compile_expression!(expression, (x) -> f32).unwrap();
+    for (c, test_value) in TEST_VALUES {
+        let result = func.execute(test_value);
+        let expected = function(test_value);
+        println!("{c}: {result} == {expected}");
+        assert!(test_eq(result, expected));
+    }
+}
+
+fn test_unspecified_precision_function(expression: &str, function: fn(f32) -> f32) {
+    let func = compile_expression!(expression, (x) -> f32).unwrap();
+    for (c, test_value) in TEST_VALUES {
+        let result = func.execute(test_value);
+        let expected = function(test_value);
+        if test_eq(result, expected) {
+            println!("{c}: {result} == {expected}");
+        } else {
+            let difference = (result - expected).abs();
+            println!("{c}: {result} - {expected} = {difference}");
+            assert!(difference < f32::EPSILON);
+        }
+    }
+}
+
+fn test_eq(a: f32, b: f32) -> bool {
+    (a == b)
+        || (a.is_nan() && b.is_nan())
+        || if a.is_infinite() && b.is_infinite() {
+            a.signum() == b.signum()
+        } else {
+            false
+        }
+}
 
 #[test]
 fn min() {
-    let func = compile_expression!("min(x, 1)", (x) -> f32).unwrap();
-    let result = func.execute(2.0);
-    assert_eq!(result, f32::min(2.0, 1.0));
-    let result = func.execute(0.0);
-    assert_eq!(result, f32::min(0.0, 1.0));
+    test_function("min(x, 1)", |x| x.min(1.0));
 }
 
 #[test]
 fn max() {
-    let func = compile_expression!("max(x, 1)", (x) -> f32).unwrap();
-    let result = func.execute(2.0);
-    assert_eq!(result, f32::max(2.0, 1.0));
-    let result = func.execute(0.0);
-    assert_eq!(result, f32::max(0.0, 1.0));
+    test_function("max(x, 1)", |x| x.max(1.0));
 }
 
 #[test]
 fn floor() {
-    let func = compile_expression!("floor(x)", (x) -> f32).unwrap();
-    let result = func.execute(2.5);
-    assert_eq!(result, f32::floor(2.5));
+    test_function("floor(x)", f32::floor);
 }
 
 #[test]
 fn round() {
-    let func = compile_expression!("round(x)", (x) -> f32).unwrap();
-    let result = func.execute(2.7);
-    assert_eq!(result, f32::round(2.7));
-    let result = func.execute(2.5);
-    assert_eq!(result, f32::round(2.5));
-    let result = func.execute(2.2);
-    assert_eq!(result, f32::round(2.2));
+    test_function("round(x)", f32::round);
 }
 
 #[test]
 fn ceil() {
-    let func = compile_expression!("ceil(x)", (x) -> f32).unwrap();
-    let result = func.execute(2.5);
-    assert_eq!(result, f32::ceil(2.5));
+    test_function("ceil(x)", f32::ceil);
 }
 
 #[test]
@@ -122,31 +147,6 @@ fn is_normal() {
     assert!(result == 0.0);
 }
 
-fn test_unspecified_precision_function(expression: &str, function: fn(f32) -> f32) {
-    let func = compile_expression!(expression, (x) -> f32).unwrap();
-    for (c, test_value) in TEST_VALUES {
-        let result = func.execute(test_value);
-        let expected = function(test_value);
-        if test_eq(result, expected) {
-            println!("{c}: {result} == {expected}");
-        } else {
-            let difference = (result - expected).abs();
-            println!("{c}: {result} - {expected} = {difference}");
-            assert!(difference < f32::EPSILON);
-        }
-    }
-}
-
-fn test_eq(a: f32, b: f32) -> bool {
-    (a == b)
-        || (a.is_nan() && b.is_nan())
-        || if a.is_infinite() && b.is_infinite() {
-            a.signum() == b.signum()
-        } else {
-            false
-        }
-}
-
 #[test]
 fn ln() {
     test_unspecified_precision_function("ln(x)", f32::ln);
@@ -173,19 +173,13 @@ fn exp2() {
 }
 
 #[test]
-#[ignore = "test process is not yet sound"]
 fn pow() {
-    let func = compile_expression!("pow(x, 2.5)", (x) -> f32).unwrap();
-    let result = func.execute(2.0);
-    assert_eq!(result, f32::powf(2.0, 2.5));
+    test_unspecified_precision_function("pow(x, 2.5)", |x| x.powf(2.5));
 }
 
 #[test]
-#[ignore = "test process is not yet sound"]
 fn hypot() {
-    let func = compile_expression!("hypot(x, 2.5)", (x) -> f32).unwrap();
-    let result = func.execute(2.0);
-    assert_eq!(result, f32::hypot(2.0, 2.5));
+    test_unspecified_precision_function("hypot(x, 2.5)", |x| x.hypot(2.5));
 }
 
 #[test]
@@ -260,9 +254,5 @@ fn cbrt() {
 
 #[test]
 fn abs() {
-    let func = compile_expression!("abs(x)", (x) -> f32).unwrap();
-    let result = func.execute(1.0);
-    assert_eq!(result, f32::abs(1.0));
-    let result = func.execute(-1.0);
-    assert_eq!(result, f32::abs(-1.0));
+    test_function("abs(x)", f32::abs);
 }
