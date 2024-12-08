@@ -67,8 +67,68 @@ internal_macros::link_cranelift! {
         x.cos()
     }
 
+    fn acos(x: f32) -> f32 {
+        x.acos()
+    }
+
+    fn cosh(x: f32) -> f32 {
+        x.cosh()
+    }
+
+    fn acosh(x: f32) -> f32 {
+        x.acosh()
+    }
+
     fn sin(x: f32) -> f32 {
         x.sin()
+    }
+
+    fn asin(x: f32) -> f32 {
+        x.asin()
+    }
+
+    fn sinh(x: f32) -> f32 {
+        x.sinh()
+    }
+
+    fn asinh(x: f32) -> f32 {
+        x.asinh()
+    }
+
+    fn tan(x: f32) -> f32 {
+        x.tan()
+    }
+
+    fn atan(x: f32) -> f32 {
+        x.atan()
+    }
+
+    fn atan2(x: f32, y: f32) -> f32 {
+        x.atan2(y)
+    }
+
+    fn tanh(x: f32) -> f32 {
+        x.tanh()
+    }
+
+    fn atanh(x: f32) -> f32 {
+        x.atanh()
+    }
+
+    fn sqrt(x: f32) -> f32 {
+        x.sqrt()
+    }
+
+    fn cbrt(x: f32) -> f32 {
+        x.cbrt()
+    }
+
+    fn abs(x: f32) -> f32 {
+        x.abs()
+    }
+
+    fn hypot(x: f32, y: f32) -> f32 {
+        x.hypot(y)
     }
 
     fn case(cond: f32, a: f32, b: f32) -> f32 {
