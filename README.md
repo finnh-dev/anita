@@ -4,7 +4,8 @@ Anita is a JIT compiler that allows runtime compilation of expressions in the fo
 ## Usage
 Anita compiles a given expression and returns a structure with a function that follows a given signature. This can be achieved by using the `compile_expression!` macro.
 ```rust
-let function = compile_expression!("x+1", (x) -> f32);
+let expression: String = "x+1".to_owned();
+let function: CompiledFunction<f32, f32> = compile_expression!(expression, (x) -> f32);
 assert_eq!(function(4_f32), 5_f32);
 ```
 
