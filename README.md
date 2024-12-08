@@ -57,40 +57,40 @@ Operator | Status | Description |
 ### Functions
 | Identifier           | Status        | Argument Amount | Argument Types                | Description |
 |----------------------|---------------|-----------------|-------------------------------|-------------|
-| `min`                | supported     | 2               | Numeric                       | Returns the minimum of the arguments |
-| `max`                | supported     | 2               | Numeric                       | Returns the maximum of the arguments |
-| `floor`              | supported     | 1               | Numeric                       | Returns the largest integer less than or equal to a number |
-| `round`              | supported     | 1               | Numeric                       | Returns the nearest integer to a number. Rounds half-way cases away from 0.0 |
-| `ceil`               | supported     | 1               | Numeric                       | Returns the smallest integer greater than or equal to a number |
-| `if`                 | supported     | 3               | Boolean, Any, Any             | If the first argument is true, returns the second argument, otherwise, returns the third  |
-| `is_nan`             | supported     | 1               | Numeric                       | Returns true if the argument is the floating-point value NaN, false if it is another floating-point value, and throws an error if it is not a number  |
-| `is_finite`          | supported     | 1               | Numeric                       | Returns true if the argument is a finite floating-point number, false otherwise  |
-| `is_infinite`        | supported     | 1               | Numeric                       | Returns true if the argument is an infinite floating-point number, false otherwise  |
-| `is_normal`          | supported     | 1               | Numeric                       | Returns true if the argument is a floating-point number that is neither zero, infinite, [subnormal](https://en.wikipedia.org/wiki/Subnormal_number), or NaN, false otherwise  |
-| `ln`                 | supported     | 1               | Numeric                       | Returns the natural logarithm of the number |
-| `log`                | supported     | 2               | Numeric, Numeric              | Returns the logarithm of the number with respect to an arbitrary base |
-| `log2`               | supported     | 1               | Numeric                       | Returns the base 2 logarithm of the number |
-| `log10`              | supported     | 1               | Numeric                       | Returns the base 10 logarithm of the number |
-| `exp`                | supported     | 1               | Numeric                       | Returns `e^(number)`, (the exponential function) |
-| `exp2`               | supported     | 1               | Numeric                       | Returns `2^(number)` |
-| `pow`                | untested      | 2               | Numeric, Numeric              | Raises a number to the power of the other number |
-| `cos`                | supported     | 1               | Numeric                       | Computes the cosine of a number (in radians) |
-| `acos`               | supported     | 1               | Numeric                       | Computes the arccosine of a number. The return value is in radians in the range [0, pi] or NaN if the number is outside the range [-1, 1] |
-| `cosh`               | supported     | 1               | Numeric                       | Hyperbolic cosine function |
-| `acosh`              | supported     | 1               | Numeric                       | Inverse hyperbolic cosine function |
-| `sin`                | supported     | 1               | Numeric                       | Computes the sine of a number (in radians) |
-| `asin`               | supported     | 1               | Numeric                       | Computes the arcsine of a number. The return value is in radians in the range [-pi/2, pi/2] or NaN if the number is outside the range [-1, 1] |
-| `sinh`               | supported     | 1               | Numeric                       | Hyperbolic sine function |
-| `asinh`              | supported     | 1               | Numeric                       | Inverse hyperbolic sine function |
-| `tan`                | supported     | 1               | Numeric                       | Computes the tangent of a number (in radians) |
-| `atan`               | supported     | 1               | Numeric                       | Computes the arctangent of a number. The return value is in radians in the range [-pi/2, pi/2] |
-| `atan2`              | supported     | 2               | Numeric, Numeric              | Computes the four quadrant arctangent in radians |
-| `tanh`               | supported     | 1               | Numeric                       | Hyperbolic tangent function |
-| `atanh`              | supported     | 1               | Numeric                       | Inverse hyperbolic tangent function. |
-| `sqrt`               | supported     | 1               | Numeric                       | Returns the square root of a number. Returns NaN for a negative number |
-| `cbrt`               | supported     | 1               | Numeric                       | Returns the cube root of a number |
-| `hypot`              | untested      | 2               | Numeric                       | Calculates the length of the hypotenuse of a right-angle triangle given legs of length given by the two arguments |
-| `abs`                | supported     | 1               | Numeric                       | Returns the absolute value of a number, returning an integer if the argument was an integer, and a float otherwise |
+| `min`                | supported     | 2               | Float                         | Returns the minimum of the arguments |
+| `max`                | supported     | 2               | Float                         | Returns the maximum of the arguments |
+| `floor`              | supported     | 1               | Float                         | Returns the largest integer less than or equal to a number |
+| `round`              | supported     | 1               | Float                         | Returns the nearest integer to a number. Rounds half-way cases away from 0.0 |
+| `ceil`               | supported     | 1               | Float                         | Returns the smallest integer greater than or equal to a number |
+| `if`                 | supported     | 3               | Float, Float, Float           | If the first argument is normal and not equal to 0.0, returns the second argument, otherwise, returns the third  |
+| `is_nan`             | supported     | 1               | Float                         | Returns true if the argument is the floating-point value NaN, false if it is another floating-point value, and throws an error if it is not a number  |
+| `is_finite`          | supported     | 1               | Float                         | Returns true if the argument is a finite floating-point number, false otherwise  |
+| `is_infinite`        | supported     | 1               | Float                         | Returns true if the argument is an infinite floating-point number, false otherwise  |
+| `is_normal`          | supported     | 1               | Float                         | Returns true if the argument is a floating-point number that is neither zero, infinite, [subnormal](https://en.wikipedia.org/wiki/Subnormal_number), or NaN, false otherwise  |
+| `ln`                 | supported     | 1               | Float                         | Returns the natural logarithm of the number |
+| `log`                | supported     | 2               | Float, Float                  | Returns the logarithm of the number with respect to an arbitrary base |
+| `log2`               | supported     | 1               | Float                         | Returns the base 2 logarithm of the number |
+| `log10`              | supported     | 1               | Float                         | Returns the base 10 logarithm of the number |
+| `exp`                | supported     | 1               | Float                         | Returns `e^(number)`, (the exponential function) |
+| `exp2`               | supported     | 1               | Float                         | Returns `2^(number)` |
+| `pow`                | supported     | 2               | Float, Float                  | Raises a number to the power of the other number |
+| `cos`                | supported     | 1               | Float                         | Computes the cosine of a number (in radians) |
+| `acos`               | supported     | 1               | Float                         | Computes the arccosine of a number. The return value is in radians in the range [0, pi] or NaN if the number is outside the range [-1, 1] |
+| `cosh`               | supported     | 1               | Float                         | Hyperbolic cosine function |
+| `acosh`              | supported     | 1               | Float                         | Inverse hyperbolic cosine function |
+| `sin`                | supported     | 1               | Float                         | Computes the sine of a number (in radians) |
+| `asin`               | supported     | 1               | Float                         | Computes the arcsine of a number. The return value is in radians in the range [-pi/2, pi/2] or NaN if the number is outside the range [-1, 1] |
+| `sinh`               | supported     | 1               | Float                         | Hyperbolic sine function |
+| `asinh`              | supported     | 1               | Float                         | Inverse hyperbolic sine function |
+| `tan`                | supported     | 1               | Float                         | Computes the tangent of a number (in radians) |
+| `atan`               | supported     | 1               | Float                         | Computes the arctangent of a number. The return value is in radians in the range [-pi/2, pi/2] |
+| `atan2`              | supported     | 2               | Float, Float                  | Computes the four quadrant arctangent in radians |
+| `tanh`               | supported     | 1               | Float                         | Hyperbolic tangent function |
+| `atanh`              | supported     | 1               | Float                         | Inverse hyperbolic tangent function. |
+| `sqrt`               | supported     | 1               | Float                         | Returns the square root of a number. Returns NaN for a negative number |
+| `cbrt`               | supported     | 1               | Float                         | Returns the cube root of a number |
+| `hypot`              | supported     | 2               | Float                         | Calculates the length of the hypotenuse of a right-angle triangle given legs of length given by the two arguments |
+| `abs`                | supported     | 1               | Float                         | Returns the absolute value of a number, returning an integer if the argument was an integer, and a float otherwise |
 | `len`                | unsupported   | 1               | String/Tuple                  | Returns the character length of a string, or the amount of elements in a tuple (not recursively) |
 | `contains`           | unsupported   | 2               | Tuple, any non-tuple          | Returns true if second argument exists in first tuple argument. |
 | `contains_any`       | unsupported   | 2               | Tuple, Tuple of any non-tuple | Returns true if one of the values in the second tuple argument exists in first tuple argument. |
