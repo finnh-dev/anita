@@ -27,6 +27,18 @@ const TEST_VALUES: [(&str, f32); 17] = [
     ("2.2", 2.2),
 ];
 
+fn test_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
+    let compiled_function = compile_expression!(expression, (x, y) -> f32).unwrap();
+    for (c1, test_value1) in TEST_VALUES {
+        for (c2, test_value2) in TEST_VALUES {
+            let result = compiled_function((test_value1, test_value2));
+            let expected = function(test_value1, test_value2);
+            println!("{c1}, {c2}: {result} == {expected}");
+            assert!(test_eq(result, expected));
+        }
+    }
+}
+
 fn test_function(expression: &str, function: fn(f32) -> f32) {
     let compiled_function = compile_expression!(expression, (x) -> f32).unwrap();
     for (c, test_value) in TEST_VALUES {
@@ -34,6 +46,23 @@ fn test_function(expression: &str, function: fn(f32) -> f32) {
         let expected = function(test_value);
         println!("{c}: {result} == {expected}");
         assert!(test_eq(result, expected));
+    }
+}
+
+fn test_unspecified_precision_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
+    let compiled_function = compile_expression!(expression, (x, y) -> f32).unwrap();
+    for (c1, test_value1) in TEST_VALUES {
+        for (c2, test_value2) in TEST_VALUES {
+            let result = compiled_function((test_value1, test_value2));
+            let expected = function(test_value1, test_value2);
+            if test_eq(result, expected) {
+                println!("{c1}, {c2}: {result} == {expected}");
+            } else {
+                let difference = (result - expected).abs();
+                println!("{c1}, {c2}: {result} - {expected} = {difference}");
+                assert!(difference < f32::EPSILON);
+            }
+        }
     }
 }
 
@@ -64,12 +93,12 @@ fn test_eq(a: f32, b: f32) -> bool {
 
 #[test]
 fn min() {
-    test_function("min(x, 1)", |x| x.min(1.0));
+    test_function_2_params("min(x, y)", f32::min);
 }
 
 #[test]
 fn max() {
-    test_function("max(x, 1)", |x| x.max(1.0));
+    test_function_2_params("max(x, y)", f32::max);
 }
 
 #[test]
@@ -174,12 +203,12 @@ fn exp2() {
 
 #[test]
 fn pow() {
-    test_unspecified_precision_function("pow(x, 2.5)", |x| x.powf(2.5));
+    test_unspecified_precision_function_2_params("pow(x, y)", f32::powf);
 }
 
 #[test]
 fn hypot() {
-    test_unspecified_precision_function("hypot(x, 2.5)", |x| x.hypot(2.5));
+    test_unspecified_precision_function_2_params("hypot(x, y)", f32::hypot);
 }
 
 #[test]
