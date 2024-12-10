@@ -134,7 +134,7 @@ internal_macros::link_cranelift! {
 
     #[name = "if"]
     fn case(cond: f32, a: f32, b: f32) -> f32 {
-        if cond != 0.0 {
+        if cond.is_normal() && cond != 0.0 {
             a
         } else {
             b

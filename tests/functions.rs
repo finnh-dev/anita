@@ -27,20 +27,49 @@ const TEST_VALUES: [(&str, f32); 17] = [
     ("2.2", 2.2),
 ];
 
+fn test_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
+    let compiled_function = compile_expression!(expression, (x, y) -> f32).unwrap();
+    for (c1, test_value1) in TEST_VALUES {
+        for (c2, test_value2) in TEST_VALUES {
+            let result = compiled_function(test_value1, test_value2);
+            let expected = function(test_value1, test_value2);
+            println!("{c1}, {c2}: {result} == {expected}");
+            assert!(test_eq(result, expected));
+        }
+    }
+}
+
 fn test_function(expression: &str, function: fn(f32) -> f32) {
-    let func = compile_expression!(expression, (x) -> f32).unwrap();
+    let compiled_function = compile_expression!(expression, (x) -> f32).unwrap();
     for (c, test_value) in TEST_VALUES {
-        let result = func.execute(test_value);
+        let result = compiled_function(test_value);
         let expected = function(test_value);
         println!("{c}: {result} == {expected}");
         assert!(test_eq(result, expected));
     }
 }
 
+fn test_unspecified_precision_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
+    let compiled_function = compile_expression!(expression, (x, y) -> f32).unwrap();
+    for (c1, test_value1) in TEST_VALUES {
+        for (c2, test_value2) in TEST_VALUES {
+            let result = compiled_function(test_value1, test_value2);
+            let expected = function(test_value1, test_value2);
+            if test_eq(result, expected) {
+                println!("{c1}, {c2}: {result} == {expected}");
+            } else {
+                let difference = (result - expected).abs();
+                println!("{c1}, {c2}: {result} - {expected} = {difference}");
+                assert!(difference < f32::EPSILON);
+            }
+        }
+    }
+}
+
 fn test_unspecified_precision_function(expression: &str, function: fn(f32) -> f32) {
-    let func = compile_expression!(expression, (x) -> f32).unwrap();
+    let compiled_function = compile_expression!(expression, (x) -> f32).unwrap();
     for (c, test_value) in TEST_VALUES {
-        let result = func.execute(test_value);
+        let result = compiled_function(test_value);
         let expected = function(test_value);
         if test_eq(result, expected) {
             println!("{c}: {result} == {expected}");
@@ -64,12 +93,12 @@ fn test_eq(a: f32, b: f32) -> bool {
 
 #[test]
 fn min() {
-    test_function("min(x, 1)", |x| x.min(1.0));
+    test_function_2_params("min(x, y)", f32::min);
 }
 
 #[test]
 fn max() {
-    test_function("max(x, 1)", |x| x.max(1.0));
+    test_function_2_params("max(x, y)", f32::max);
 }
 
 #[test]
@@ -89,61 +118,61 @@ fn ceil() {
 
 #[test]
 fn if_function() {
-    let func = compile_expression!("if(is_normal(x), x, 0.0)", (x) -> f32).unwrap();
-    let result = func.execute(2.5);
+    let compiled_function = compile_expression!("if(is_normal(x), x, 0.0)", (x) -> f32).unwrap();
+    let result = compiled_function(2.5);
     assert_eq!(result, 2.5);
-    let result = func.execute(f32::INFINITY);
+    let result = compiled_function(f32::INFINITY);
     assert_eq!(result, 0.0);
 }
 
 #[test]
 fn is_nan() {
-    let func = compile_expression!("is_nan(x)", (x) -> f32).unwrap();
-    let result = func.execute(f32::NAN);
+    let compiled_function = compile_expression!("is_nan(x)", (x) -> f32).unwrap();
+    let result = compiled_function(f32::NAN);
     assert!(result == 1.0);
-    let result = func.execute(1.0);
+    let result = compiled_function(1.0);
     assert!(result == 0.0);
 }
 
 #[test]
 fn is_finite() {
-    let func = compile_expression!("is_finite(x)", (x) -> f32).unwrap();
-    let result = func.execute(1.0);
+    let compiled_function = compile_expression!("is_finite(x)", (x) -> f32).unwrap();
+    let result = compiled_function(1.0);
     assert!(result == 1.0);
-    let result = func.execute(f32::INFINITY);
+    let result = compiled_function(f32::INFINITY);
     assert!(result == 0.0);
-    let result = func.execute(f32::NAN);
+    let result = compiled_function(f32::NAN);
     assert!(result == 0.0);
 }
 
 #[test]
 fn is_infinite() {
-    let func = compile_expression!("is_infinite(x)", (x) -> f32).unwrap();
-    let result = func.execute(f32::INFINITY);
+    let compiled_function = compile_expression!("is_infinite(x)", (x) -> f32).unwrap();
+    let result = compiled_function(f32::INFINITY);
     assert!(result == 1.0);
-    let result = func.execute(f32::NEG_INFINITY);
+    let result = compiled_function(f32::NEG_INFINITY);
     assert!(result == 1.0);
-    let result = func.execute(f32::NAN);
+    let result = compiled_function(f32::NAN);
     assert!(result == 0.0);
-    let result = func.execute(1.0);
+    let result = compiled_function(1.0);
     assert!(result == 0.0);
     let _ = 1_f32.is_infinite();
 }
 
 #[test]
 fn is_normal() {
-    let func = compile_expression!("is_normal(x)", (x) -> f32).unwrap();
-    let result = func.execute(MIN);
+    let compiled_function = compile_expression!("is_normal(x)", (x) -> f32).unwrap();
+    let result = compiled_function(MIN);
     assert!(result == 1.0);
-    let result = func.execute(MAX);
+    let result = compiled_function(MAX);
     assert!(result == 1.0);
-    let result = func.execute(ZERO);
+    let result = compiled_function(ZERO);
     assert!(result == 0.0);
-    let result = func.execute(LOWER_THAN_MIN);
+    let result = compiled_function(LOWER_THAN_MIN);
     assert!(result == 0.0);
-    let result = func.execute(f32::INFINITY);
+    let result = compiled_function(f32::INFINITY);
     assert!(result == 0.0);
-    let result = func.execute(f32::NAN);
+    let result = compiled_function(f32::NAN);
     assert!(result == 0.0);
 }
 
@@ -174,12 +203,12 @@ fn exp2() {
 
 #[test]
 fn pow() {
-    test_unspecified_precision_function("pow(x, 2.5)", |x| x.powf(2.5));
+    test_unspecified_precision_function_2_params("pow(x, y)", f32::powf);
 }
 
 #[test]
 fn hypot() {
-    test_unspecified_precision_function("hypot(x, 2.5)", |x| x.hypot(2.5));
+    test_unspecified_precision_function_2_params("hypot(x, y)", f32::hypot);
 }
 
 #[test]

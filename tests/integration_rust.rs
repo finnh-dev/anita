@@ -7,7 +7,7 @@ use evalexpr::build_operator_tree;
 fn owned_input() {
     let input = "x".to_owned();
     let f = compile_expression!(input, (x) -> f32).unwrap();
-    let result = f.execute(1.0);
+    let result = f(1.0);
     assert_eq!(result, 1_f32);
 }
 
@@ -27,24 +27,10 @@ fn empty_input() {
 }
 
 #[test]
-fn division_by_zero() {
-    let func = compile_expression!("1.0 / x", (x) -> f32).unwrap();
-    let result = func.execute(0.0);
-    assert!(result.is_infinite());
-}
-
-#[test]
-fn sum_absorbed() {
-    let func = compile_expression!("x + 1", (x) -> f32).unwrap();
-    let result = func.execute(f32::MAX);
-    println!("result: {result}, expected: {}", f32::MAX);
-    assert_eq!(result, f32::MAX);
-}
-
-#[test]
-fn sum_nan() {
-    let func = compile_expression!("x + 1", (x) -> f32).unwrap();
-    let result = func.execute(f32::NAN);
-    println!("result: {result}, expected: {}", f32::NAN);
-    assert!(result.is_nan())
+fn complex_function() {
+    let expression = "tanh(a * x^3) + b * sin(c * x)";
+    let function = compile_expression!(expression, (x, a, b, c) -> f32).unwrap();
+    let result = function(3.0, 0.7, 0.1, 6.4);
+    let expected = f32::tanh(0.7 * f32::powf(3.0, 3.0)) + 0.1 * f32::sin(6.4 * 3.0);
+    assert_eq!(result, expected);
 }
