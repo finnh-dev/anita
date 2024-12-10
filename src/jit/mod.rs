@@ -1,11 +1,10 @@
 use std::{
-    collections::{HashMap, HashSet},
-    mem, ops::Deref,
+    collections::{HashMap, HashSet}, ops::Deref,
 };
 
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
-use cranelift_module::{FuncId, Module, ModuleError};
+use cranelift_module::{Module, ModuleError};
 use evalexpr::{build_operator_tree, EvalexprError, Node};
 use itertools::Itertools;
 use translator::ExprTranslator;
@@ -21,12 +20,23 @@ macro_rules! compile_expression {
 
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
+            use std::mem;
             use $crate::jit::{CompiledFunction, EvalexprCompError, JIT};
 
-            let jit = JIT::default();
-            #[allow(unused_parens)] // necessary due to https://github.com/rust-lang/rust/issues/73068
-            let function: Result<CompiledFunction<($(compile_expression!(@to_f32 $parameter)),+), f32>, EvalexprCompError> = jit.compile($expression, &[$( stringify!($parameter) ),*]);
-            function
+            let mut jit = JIT::default();
+            match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
+                Ok(code_ptr) => {
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
+                    let memory_region = jit.dissolve();
+                    Ok(CompiledFunction {
+                        memory_region,
+                        function_pointer,
+                    })
+                },
+                Err(e) => {
+                    Err(e)
+                }
+            }
         }
     };
 }
@@ -67,14 +77,14 @@ impl From<ModuleError> for EvalexprCompError {
 }
 
 #[derive(Debug)]
-pub struct CompiledFunction<I, O> {
+pub struct CompiledFunction<F> {
     #[allow(unused)]
-    memory_region: Box<dyn std::any::Any>,
-    function_pointer: fn(I) -> O,
+    pub memory_region: Box<dyn std::any::Any>,
+    pub function_pointer: F,
 }
 
-impl<I, O> Deref for CompiledFunction<I, O> {
-    type Target = fn(I) -> O;
+impl<F> Deref for CompiledFunction<F> {
+    type Target = F;
     
     fn deref(&self) -> &Self::Target {
         &self.function_pointer
@@ -113,23 +123,15 @@ impl Default for JIT {
 }
 
 impl JIT {
-    fn finalize<I, O>(self, func_id: FuncId) -> CompiledFunction<I, O> {
-        let code_ptr = self.module.get_finalized_function(func_id);
-
-        let function_pointer = unsafe { mem::transmute::<*const u8, fn(I) -> O>(code_ptr) };
-
-        let memory_region = Box::new(self.module);
-        CompiledFunction {
-            memory_region,
-            function_pointer,
-        }
+    pub fn dissolve(self) -> Box<JITModule>{
+        Box::new(self.module)
     }
 
-    pub fn compile<E: AsRef<str>, I, O>(
-        mut self,
+    pub fn compile<E: AsRef<str>>(
+        &mut self,
         expression: E,
         params: &[&str],
-    ) -> Result<CompiledFunction<I, O>, EvalexprCompError> {
+    ) -> Result<*const u8, EvalexprCompError> {
         let _ = get_function_addr("test_fn");
         let ast = build_operator_tree(expression.as_ref())?;
 
@@ -148,7 +150,7 @@ impl JIT {
         self.module
             .finalize_definitions()
             .expect("Failed to compile expression");
-        Ok(self.finalize(id))
+        Ok(self.module.get_finalized_function(id))
     }
 
     fn translate(&mut self, node: Node, params: &[&str]) -> Result<(), EvalexprCompError> {

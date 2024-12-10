@@ -31,7 +31,7 @@ fn test_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
     let compiled_function = compile_expression!(expression, (x, y) -> f32).unwrap();
     for (c1, test_value1) in TEST_VALUES {
         for (c2, test_value2) in TEST_VALUES {
-            let result = compiled_function((test_value1, test_value2));
+            let result = compiled_function(test_value1, test_value2);
             let expected = function(test_value1, test_value2);
             println!("{c1}, {c2}: {result} == {expected}");
             assert!(test_eq(result, expected));
@@ -53,7 +53,7 @@ fn test_unspecified_precision_function_2_params(expression: &str, function: fn(f
     let compiled_function = compile_expression!(expression, (x, y) -> f32).unwrap();
     for (c1, test_value1) in TEST_VALUES {
         for (c2, test_value2) in TEST_VALUES {
-            let result = compiled_function((test_value1, test_value2));
+            let result = compiled_function(test_value1, test_value2);
             let expected = function(test_value1, test_value2);
             if test_eq(result, expected) {
                 println!("{c1}, {c2}: {result} == {expected}");
