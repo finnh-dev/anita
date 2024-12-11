@@ -1,5 +1,7 @@
 use std::{
-    any, collections::{HashMap, HashSet}, ops::Deref
+    any,
+    collections::{HashMap, HashSet},
+    ops::Deref,
 };
 
 use cranelift::prelude::*;
@@ -16,7 +18,7 @@ mod translator;
 
 #[macro_export]
 macro_rules! compile_expression {
-    (@to_f32 $_:ident) => {f32}; // TODO: investigate and potentially fix exposure of helper pattern outside this module
+    (@to_f32 $_:ident) => {f32};
 
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
@@ -83,14 +85,14 @@ impl<F> CompiledFunction<F> {
     pub fn new(memory_region: Box<dyn std::any::Any>, function_pointer: F) -> CompiledFunction<F> {
         CompiledFunction {
             _memory_region: memory_region,
-            function_pointer
+            function_pointer,
         }
     }
 }
 
 impl<F> Deref for CompiledFunction<F> {
     type Target = F;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.function_pointer
     }
@@ -128,22 +130,21 @@ impl Default for JIT {
 }
 
 impl JIT {
-
-    /// Drops the JIT and returns an owned pointer to the memory region containing the compiled code.
-    /// 
+    /// Drops self and returns an owned pointer to the memory region containing the compiled code.
+    ///
     /// Can be used to manually manage the memory the validatity of the compiled function relies on.
-    /// 
+    ///
     /// It is advised to use the provided [`compile_expression!`] macro instead.
-    pub fn dissolve(self) -> Box<dyn any::Any>{
+    pub fn dissolve(self) -> Box<dyn any::Any> {
         Box::new(self.module)
     }
 
-    /// Compiles the given expression and returns the a pointer to the compiled code.
-    /// 
-    /// The pointer remains valid until the module field of the JIT is deallocated. 
-    /// 
+    /// Compiles `expression` to a function of the `parameters` and returns the a pointer to the compiled code.
+    ///
+    /// The pointer remains valid until the module field of the JIT is deallocated.
+    ///
     /// In order to manually manage the memory region [`JIT::dissolve`] can be used.
-    /// 
+    ///
     /// It is advised to use the provided [`compile_expression!`] macro instead.
     pub fn compile<E: AsRef<str>>(
         &mut self,
