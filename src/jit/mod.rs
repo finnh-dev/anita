@@ -148,12 +148,12 @@ impl JIT {
     pub fn compile<E: AsRef<str>>(
         &mut self,
         expression: E,
-        params: &[&str],
+        parameters: &[&str],
     ) -> Result<*const u8, EvalexprCompError> {
         let _ = get_function_addr("test_fn");
         let ast = build_operator_tree(expression.as_ref())?;
 
-        self.translate(ast, params)?;
+        self.translate(ast, parameters)?;
 
         let id = self.module.declare_function(
             "waveshaper",
@@ -200,11 +200,8 @@ impl JIT {
         };
         let return_value = translator.convert_value_type(F32, return_value)?;
 
-        let (mut builder, _, _functions, _) = translator.deconstruct();
+        let (mut builder, _, _, _) = translator.deconstruct();
 
-        // for (identifier, (_, _)) in functions {
-        //     self.module.define_symbol()
-        // }
         builder.ins().return_(&[return_value]);
         builder.finalize();
 
