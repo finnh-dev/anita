@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet}, ops::Deref,
+    any, collections::{HashMap, HashSet}, ops::Deref
 };
 
 use cranelift::prelude::*;
@@ -28,10 +28,7 @@ macro_rules! compile_expression {
                 Ok(code_ptr) => {
                     let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
                     let memory_region = jit.dissolve();
-                    Ok(CompiledFunction {
-                        memory_region,
-                        function_pointer,
-                    })
+                    Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
                 Err(e) => {
                     Err(e)
@@ -78,9 +75,17 @@ impl From<ModuleError> for EvalexprCompError {
 
 #[derive(Debug)]
 pub struct CompiledFunction<F> {
-    #[allow(unused)]
-    pub memory_region: Box<dyn std::any::Any>,
-    pub function_pointer: F,
+    _memory_region: Box<dyn std::any::Any>,
+    function_pointer: F,
+}
+
+impl<F> CompiledFunction<F> {
+    pub fn new(memory_region: Box<dyn std::any::Any>, function_pointer: F) -> CompiledFunction<F> {
+        CompiledFunction {
+            _memory_region: memory_region,
+            function_pointer
+        }
+    }
 }
 
 impl<F> Deref for CompiledFunction<F> {
@@ -123,10 +128,23 @@ impl Default for JIT {
 }
 
 impl JIT {
-    pub fn dissolve(self) -> Box<JITModule>{
+
+    /// Drops the JIT and returns an owned pointer to the memory region containing the compiled code.
+    /// 
+    /// Can be used to manually manage the memory the validatity of the compiled function relies on.
+    /// 
+    /// It is advised to use the provided [`compile_expression!`] macro instead.
+    pub fn dissolve(self) -> Box<dyn any::Any>{
         Box::new(self.module)
     }
 
+    /// Compiles the given expression and returns the a pointer to the compiled code.
+    /// 
+    /// The pointer remains valid until the module field of the JIT is deallocated. 
+    /// 
+    /// In order to manually manage the memory region [`JIT::dissolve`] can be used.
+    /// 
+    /// It is advised to use the provided [`compile_expression!`] macro instead.
     pub fn compile<E: AsRef<str>>(
         &mut self,
         expression: E,
