@@ -1,4 +1,7 @@
-internal_macros::link_cranelift! {
+struct TestFunctionManager;
+
+#[internal_macros::function_manager]
+impl TestFunctionManager {
     fn min(x: f32, y: f32) -> f32 {
         x.min(y)
     }
@@ -39,6 +42,7 @@ internal_macros::link_cranelift! {
         a.powf(x)
     }
 
+    #[name = "mod"]
     fn modulo(x: f32, y: f32) -> f32 {
         x % y
     }

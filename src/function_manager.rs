@@ -1,4 +1,27 @@
-internal_macros::link_cranelift! {
+
+use internal_macros::function_manager;
+
+pub trait FunctionManager {
+    fn function_address(identifier: &str) -> Option<*const u8>;
+    fn function_symbols() -> std::boxed::Box<[(&'static str, *const u8)]>;
+    fn function_signature(
+        identifier: &str,
+        calling_conventrion: cranelift::prelude::isa::CallConv,
+    ) -> Option<cranelift::prelude::Signature>;
+}
+
+pub struct DefaultFunctionManager;
+
+#[cfg(feature = "no-default-functions")]
+#[function_manager]
+impl DefaultFunctionManager {
+
+}
+
+// TODO: fix multiple definitions
+#[cfg(not(feature = "no-default-functions"))]
+#[function_manager]
+impl DefaultFunctionManager {
     fn min(x: f32, y: f32) -> f32 {
         x.min(y)
     }

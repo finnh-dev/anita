@@ -2,6 +2,7 @@ use core::f32;
 
 use anita::{compile_expression, jit::EvalexprCompError};
 use evalexpr::build_operator_tree;
+use internal_macros::function_manager;
 
 #[test]
 fn owned_input() {
@@ -33,4 +34,32 @@ fn complex_function() {
     let result = function(3.0, 0.7, 0.1, 6.4);
     let expected = f32::tanh(0.7 * f32::powf(3.0, 3.0)) + 0.1 * f32::sin(6.4 * 3.0);
     assert_eq!(result, expected);
+}
+
+struct TestFunctionManager;
+
+#[function_manager]
+impl TestFunctionManager {
+    #[name = "tanh"]
+    fn custom_tanh(x: f32) -> f32 {
+        match x {
+            f32::INFINITY => 1.0,
+            f32::NEG_INFINITY => -1.0,
+            x if x.is_nan() => 0.0,
+            x => f32::tanh(x),
+        }
+    }
+}
+
+#[test]
+fn custom_function_manager() {
+    let func = compile_expression!("tanh(x)", (x) -> f32, TestFunctionManager).unwrap();
+    let result = func(f32::INFINITY);
+    assert_eq!(result, 1.0);
+    let result = func(f32::NEG_INFINITY);
+    assert_eq!(result, -1.0);
+    let result = func(f32::NAN);
+    assert_eq!(result, 0.0);
+    let result = func(1.0);
+    assert_eq!(result, f32::tanh(1.0));
 }

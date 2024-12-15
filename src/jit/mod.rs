@@ -1,37 +1,55 @@
 use std::{
-    collections::{HashMap, HashSet}, ops::Deref,
+    any,
+    collections::{HashMap, HashSet},
+    ops::Deref,
 };
 
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
 use evalexpr::{build_operator_tree, EvalexprError, Node};
+use super::function_manager::{DefaultFunctionManager, FunctionManager};
 use itertools::Itertools;
 use translator::ExprTranslator;
 use types::F32;
 
-use math::functions::{get_function_addr, get_function_symbols};
-mod math;
 mod translator;
 
 #[macro_export]
 macro_rules! compile_expression {
-    (@to_f32 $_:ident) => {f32}; // TODO: investigate and potentially fix exposure of helper pattern outside this module
+    (@to_f32 $_:ident) => {f32};
 
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
             use std::mem;
             use $crate::jit::{CompiledFunction, EvalexprCompError, JIT};
+            use $crate::function_manager::DefaultFunctionManager;
 
-            let mut jit = JIT::default();
+            let mut jit = JIT::<DefaultFunctionManager>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
                     let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
                     let memory_region = jit.dissolve();
-                    Ok(CompiledFunction {
-                        memory_region,
-                        function_pointer,
-                    })
+                    Ok(CompiledFunction::new(memory_region, function_pointer))
+                },
+                Err(e) => {
+                    Err(e)
+                }
+            }
+        }
+    };
+
+    ($expression:expr, ($($parameter:ident),+) -> f32, $function_manager:ty) => {
+        {
+            use std::mem;
+            use $crate::jit::{CompiledFunction, EvalexprCompError, JIT};
+
+            let mut jit = JIT::<$function_manager>::default();
+            match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
+                Ok(code_ptr) => {
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
+                    let memory_region = jit.dissolve();
+                    Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
                 Err(e) => {
                     Err(e)
@@ -78,26 +96,35 @@ impl From<ModuleError> for EvalexprCompError {
 
 #[derive(Debug)]
 pub struct CompiledFunction<F> {
-    #[allow(unused)]
-    pub memory_region: Box<dyn std::any::Any>,
-    pub function_pointer: F,
+    _memory_region: Box<dyn std::any::Any>,
+    function_pointer: F,
+}
+
+impl<F> CompiledFunction<F> {
+    pub fn new(memory_region: Box<dyn std::any::Any>, function_pointer: F) -> CompiledFunction<F> {
+        CompiledFunction {
+            _memory_region: memory_region,
+            function_pointer,
+        }
+    }
 }
 
 impl<F> Deref for CompiledFunction<F> {
     type Target = F;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.function_pointer
     }
 }
 
-pub struct JIT {
+pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
     builder_context: FunctionBuilderContext,
     ctx: codegen::Context,
     module: JITModule,
+    _function_manager: std::marker::PhantomData<F>
 }
 
-impl Default for JIT {
+impl<F: FunctionManager> Default for JIT<F> {
     fn default() -> Self {
         let mut flag_builder = settings::builder();
         flag_builder.set("use_colocated_libcalls", "false").unwrap();
@@ -110,7 +137,7 @@ impl Default for JIT {
             .unwrap();
         let mut builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
 
-        for (ident, addr) in get_function_symbols() {
+        for (ident, addr) in F::function_symbols() {
             builder.symbol(ident, addr);
         }
         let module = JITModule::new(builder);
@@ -118,24 +145,36 @@ impl Default for JIT {
             builder_context: FunctionBuilderContext::new(),
             ctx: module.make_context(),
             module,
+            _function_manager: std::marker::PhantomData,
         }
     }
 }
 
-impl JIT {
-    pub fn dissolve(self) -> Box<JITModule>{
+impl<F: FunctionManager> JIT<F> {
+    /// Drops self and returns an owned pointer to the memory region containing the compiled code.
+    ///
+    /// Can be used to manually manage the memory the validatity of the compiled function relies on.
+    ///
+    /// It is advised to use the provided [`compile_expression!`] macro instead.
+    pub fn dissolve(self) -> Box<dyn any::Any> {
         Box::new(self.module)
     }
 
+    /// Compiles `expression` to a function of the `parameters` and returns the a pointer to the compiled code.
+    ///
+    /// The pointer remains valid until the module field of the JIT is deallocated.
+    ///
+    /// In order to manually manage the memory region [`JIT::dissolve`] can be used.
+    ///
+    /// It is advised to use the provided [`compile_expression!`] macro instead.
     pub fn compile<E: AsRef<str>>(
         &mut self,
         expression: E,
-        params: &[&str],
+        parameters: &[&str],
     ) -> Result<*const u8, EvalexprCompError> {
-        let _ = get_function_addr("test_fn");
         let ast = build_operator_tree(expression.as_ref())?;
 
-        self.translate(ast, params)?;
+        self.translate(ast, parameters)?;
 
         let id = self.module.declare_function(
             "waveshaper",
@@ -170,11 +209,12 @@ impl JIT {
         let variables = declare_variables(&mut builder, &node, params, entry_block)?;
         let functions = HashMap::default();
 
-        let mut translator = ExprTranslator {
+        let mut translator = ExprTranslator::<F> {
             builder,
             variables,
             functions,
             module: &mut self.module,
+            _function_manager: std::marker::PhantomData,
         };
 
         let Some(return_value) = translator.translate_operator(&node)? else {
@@ -182,11 +222,8 @@ impl JIT {
         };
         let return_value = translator.convert_value_type(F32, return_value)?;
 
-        let (mut builder, _, _functions, _) = translator.deconstruct();
+        let (mut builder, _, _, _) = translator.deconstruct();
 
-        // for (identifier, (_, _)) in functions {
-        //     self.module.define_symbol()
-        // }
         builder.ins().return_(&[return_value]);
         builder.finalize();
 

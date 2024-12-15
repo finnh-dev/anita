@@ -8,16 +8,17 @@ use cranelift_jit::JITModule;
 use cranelift_module::Module;
 use evalexpr::{EvalexprError, Node};
 
-use super::{math::functions::get_function_signature, EvalexprCompError};
+use super::{super::function_manager::FunctionManager, EvalexprCompError};
 
-pub(super) struct ExprTranslator<'a> {
+pub(super) struct ExprTranslator<'a, F:FunctionManager> {
     pub(super) builder: FunctionBuilder<'a>,
     pub(super) variables: HashMap<String, Variable>,
     pub(super) functions: HashMap<String, (FuncRef, usize)>,
     pub(super) module: &'a mut JITModule,
+    pub(super) _function_manager: std::marker::PhantomData<F>,
 }
 
-impl<'a> ExprTranslator<'a> {
+impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
     pub fn deconstruct(
         self,
     ) -> (
@@ -91,7 +92,13 @@ impl<'a> ExprTranslator<'a> {
                     op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
             }
-            evalexpr::Operator::Mod => Ok(Some(self.translate_call("mod", node.children())?)),
+            evalexpr::Operator::Mod => {
+                let (value, modulus) = self.binary_operation(node)?;
+                let div = self.builder.ins().fdiv(value, modulus);
+                let trunc = self.builder.ins().trunc(div);
+                let full_div = self.builder.ins().fmul(trunc, modulus);
+                Ok(Some(self.builder.ins().fsub(value, full_div)))
+            },
             evalexpr::Operator::Exp => Ok(Some(self.translate_call("pow", node.children())?)),
             evalexpr::Operator::Eq => todo!(),
             evalexpr::Operator::Neq => todo!(),
@@ -253,7 +260,7 @@ impl<'a> ExprTranslator<'a> {
     ) -> Result<(FuncRef, usize), EvalexprCompError> {
         let Some(func) = self.functions.get(identifier) else {
             let Some(signature) =
-                get_function_signature(identifier, self.module.isa().default_call_conv())
+                F::function_signature(identifier, self.module.isa().default_call_conv())
             else {
                 todo!()
             };
