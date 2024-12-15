@@ -1,5 +1,4 @@
 use std::{
-    any,
     collections::{HashMap, HashSet},
     ops::Deref,
 };
@@ -94,14 +93,13 @@ impl From<ModuleError> for EvalexprCompError {
     }
 }
 
-#[derive(Debug)]
 pub struct CompiledFunction<F> {
-    _memory_region: Box<dyn std::any::Any>,
+    _memory_region: Box<JITModule>,
     function_pointer: F,
 }
 
 impl<F> CompiledFunction<F> {
-    pub fn new(memory_region: Box<dyn std::any::Any>, function_pointer: F) -> CompiledFunction<F> {
+    pub fn new(memory_region: Box<JITModule>, function_pointer: F) -> CompiledFunction<F> {
         CompiledFunction {
             _memory_region: memory_region,
             function_pointer,
@@ -156,7 +154,7 @@ impl<F: FunctionManager> JIT<F> {
     /// Can be used to manually manage the memory the validatity of the compiled function relies on.
     ///
     /// It is advised to use the provided [`compile_expression!`] macro instead.
-    pub fn dissolve(self) -> Box<dyn any::Any> {
+    pub fn dissolve(self) -> Box<JITModule> {
         Box::new(self.module)
     }
 

@@ -17,13 +17,13 @@ fn empty_input() {
     let expr = "";
     let ast = build_operator_tree(&expr).unwrap();
     let result = compile_expression!(expr, (x) -> f32);
-    if let Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node)) = result {
-        assert_eq!(node, ast);
-    } else {
-        panic!(
+    match result {
+        Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node)) => assert_eq!(node, ast),
+        Ok(_) => panic!("Expected Error but got successful compilation"),
+        Err(e) => panic!(
             "Expected EvalexprCompError::ExpressionEvaluatesToNoValue but got: {:?}",
-            result
-        )
+            e
+        ),
     }
 }
 
