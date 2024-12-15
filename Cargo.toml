@@ -17,6 +17,7 @@ itertools = "0.13.0"
 [features]
 default = ["cranelift-jit"]
 selinux-fix = ["cranelift-jit/selinux-fix"]
+no-default-functions = ["cranelift-jit"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
 cranelift-jit = {version = "0.114.0", features = ["selinux-fix"]}
