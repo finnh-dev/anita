@@ -92,7 +92,13 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                     op_type => Err(EvalexprCompError::UseOfUnsupportedType(op_type)),
                 }
             }
-            evalexpr::Operator::Mod => Ok(Some(self.translate_call("mod", node.children())?)),
+            evalexpr::Operator::Mod => {
+                let (value, modulus) = self.binary_operation(node)?;
+                let div = self.builder.ins().fdiv(value, modulus);
+                let trunc = self.builder.ins().trunc(div);
+                let full_div = self.builder.ins().fmul(trunc, modulus);
+                Ok(Some(self.builder.ins().fsub(value, full_div)))
+            },
             evalexpr::Operator::Exp => Ok(Some(self.translate_call("pow", node.children())?)),
             evalexpr::Operator::Eq => todo!(),
             evalexpr::Operator::Neq => todo!(),
