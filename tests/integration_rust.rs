@@ -38,10 +38,24 @@ fn complex_function() {
 
 struct TestFunctionManager;
 
+#[cfg(not(feature = "no-default-functions"))]
 #[function_manager]
 impl TestFunctionManager {
     #[name = "tanh"]
     fn custom_tanh(x: f32) -> f32 {
+        match x {
+            f32::INFINITY => 1.0,
+            f32::NEG_INFINITY => -1.0,
+            x if x.is_nan() => 0.0,
+            x => f32::tanh(x),
+        }
+    }
+}
+
+#[cfg(feature = "no-default-functions")]
+#[function_manager]
+impl TestFunctionManager {
+    fn tanh(x: f32) -> f32 {
         match x {
             f32::INFINITY => 1.0,
             f32::NEG_INFINITY => -1.0,
@@ -63,3 +77,5 @@ fn custom_function_manager() {
     let result = func(1.0);
     assert_eq!(result, f32::tanh(1.0));
 }
+
+

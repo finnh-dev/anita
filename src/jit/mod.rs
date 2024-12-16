@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Deref,
-};
+use std::collections::{HashMap, HashSet};
 
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
@@ -13,6 +10,7 @@ use translator::ExprTranslator;
 use types::F32;
 
 mod translator;
+pub mod compiled_function;
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -21,7 +19,7 @@ macro_rules! compile_expression {
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
             use std::mem;
-            use $crate::jit::{CompiledFunction, EvalexprCompError, JIT};
+            use $crate::jit::{compiled_function::CompiledFunction, EvalexprCompError, JIT};
             use $crate::function_manager::DefaultFunctionManager;
 
             let mut jit = JIT::<DefaultFunctionManager>::default();
@@ -41,7 +39,7 @@ macro_rules! compile_expression {
     ($expression:expr, ($($parameter:ident),+) -> f32, $function_manager:ty) => {
         {
             use std::mem;
-            use $crate::jit::{CompiledFunction, EvalexprCompError, JIT};
+            use $crate::jit::{compiled_function::CompiledFunction, EvalexprCompError, JIT};
 
             let mut jit = JIT::<$function_manager>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
@@ -93,32 +91,10 @@ impl From<ModuleError> for EvalexprCompError {
     }
 }
 
-pub struct CompiledFunction<F> {
-    _memory_region: Box<JITModule>,
-    function_pointer: F,
-}
-
-impl<F> CompiledFunction<F> {
-    pub fn new(memory_region: Box<JITModule>, function_pointer: F) -> CompiledFunction<F> {
-        CompiledFunction {
-            _memory_region: memory_region,
-            function_pointer,
-        }
-    }
-}
-
-impl<F> Deref for CompiledFunction<F> {
-    type Target = F;
-
-    fn deref(&self) -> &Self::Target {
-        &self.function_pointer
-    }
-}
-
 pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
     builder_context: FunctionBuilderContext,
     ctx: codegen::Context,
-    module: JITModule,
+    module: Box<JITModule>,
     _function_manager: std::marker::PhantomData<F>
 }
 
@@ -138,7 +114,7 @@ impl<F: FunctionManager> Default for JIT<F> {
         for (ident, addr) in F::function_symbols() {
             builder.symbol(ident, addr);
         }
-        let module = JITModule::new(builder);
+        let module = Box::new(JITModule::new(builder));
         Self {
             builder_context: FunctionBuilderContext::new(),
             ctx: module.make_context(),
@@ -155,7 +131,7 @@ impl<F: FunctionManager> JIT<F> {
     ///
     /// It is advised to use the provided [`compile_expression!`] macro instead.
     pub fn dissolve(self) -> Box<JITModule> {
-        Box::new(self.module)
+        self.module
     }
 
     /// Compiles `expression` to a function of the `parameters` and returns the a pointer to the compiled code.
