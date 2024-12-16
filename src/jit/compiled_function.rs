@@ -30,15 +30,15 @@ impl Drop for FrozenJITModule {
 }
 
 pub struct CompiledFunction<F: Send + Sync> {
-    _memory_region: FrozenJITModule,
     function_pointer: F,
+    _memory_region: FrozenJITModule,
 }
 
 impl<F: Send + Sync> CompiledFunction<F> {
     pub fn new(module: Box<JITModule>, function_pointer: F) -> CompiledFunction<F> {
         CompiledFunction {
-            _memory_region: module.into(),
             function_pointer,
+            _memory_region: module.into(),
         }
     }
 }
