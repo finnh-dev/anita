@@ -77,5 +77,3 @@ fn custom_function_manager() {
     let result = func(1.0);
     assert_eq!(result, f32::tanh(1.0));
 }
-
-

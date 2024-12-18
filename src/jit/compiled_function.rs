@@ -20,9 +20,7 @@ unsafe impl Sync for FrozenJITModule {}
 
 impl Drop for FrozenJITModule {
     fn drop(&mut self) {
-        let memory = unsafe {
-            ManuallyDrop::take(&mut self._module)
-        };
+        let memory = unsafe { ManuallyDrop::take(&mut self._module) };
         unsafe {
             memory.free_memory();
         }

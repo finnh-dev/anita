@@ -1,16 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
+use super::function_manager::{DefaultFunctionManager, FunctionManager};
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
 use evalexpr::{build_operator_tree, EvalexprError, Node};
-use super::function_manager::{DefaultFunctionManager, FunctionManager};
 use itertools::Itertools;
 use translator::ExprTranslator;
 use types::F32;
 
-mod translator;
 pub mod compiled_function;
+pub mod frontend;
+mod translator;
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -69,6 +70,8 @@ pub enum EvalexprCompError {
     UseOfUnsupportedType(Type),
     MalformedOperatorTree(Node),
     VariableNotFound(String),
+    UnsupportedOperator(evalexpr::Operator),
+    FunctionNotFound(String),
 }
 
 impl EvalexprCompError {
@@ -95,7 +98,7 @@ pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
     builder_context: FunctionBuilderContext,
     ctx: codegen::Context,
     module: Box<JITModule>,
-    _function_manager: std::marker::PhantomData<F>
+    _function_manager: std::marker::PhantomData<F>,
 }
 
 impl<F: FunctionManager> Default for JIT<F> {
