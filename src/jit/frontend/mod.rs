@@ -166,6 +166,7 @@ mod tests {
     use super::parser;
 
     #[test]
+    #[ignore = "just for debugguing"]
     fn debug() {
         let expr = "!a + b";
         match parser::expression(expr) {

@@ -99,7 +99,10 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 let full_div = self.builder.ins().fmul(trunc, modulus);
                 Ok(Some(self.builder.ins().fsub(value, full_div)))
             }
-            evalexpr::Operator::Exp => Ok(Some(self.translate_call("pow", node.children())?)),
+            evalexpr::Operator::Exp => {
+                let (lhs, rhs) = self.binary_operation(node)?;
+                Ok(Some(self.function_call("inbuilt_powf", &[lhs, rhs])?))
+            },
             evalexpr::Operator::Eq => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, lhs, rhs)))
@@ -267,27 +270,6 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
         params: &[Value],
     ) -> Result<Value, EvalexprCompError> {
         let (func_ref, _) = self.declare_function(identifier)?;
-        let call = self.builder.ins().call(func_ref, &params);
-        Ok(self.builder.inst_results(call)[0])
-    }
-
-    fn translate_call(
-        &mut self,
-        identifier: &str,
-        params: &[Node],
-    ) -> Result<Value, EvalexprCompError> {
-        let (func_ref, _) = self.declare_function(identifier)?;
-        let params = params
-            .iter()
-            .map(|node| {
-                let Some(value) = self.translate_operator(node)? else {
-                    return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(
-                        node.clone(),
-                    ));
-                };
-                Ok(value)
-            })
-            .collect::<Result<Box<[Value]>, EvalexprCompError>>()?;
         let call = self.builder.ins().call(func_ref, &params);
         Ok(self.builder.inst_results(call)[0])
     }

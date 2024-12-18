@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::function_manager::{DefaultFunctionManager, FunctionManager};
+use codegen::ir::FuncRef;
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
@@ -12,6 +13,11 @@ use types::F32;
 pub mod compiled_function;
 pub mod frontend;
 mod translator;
+
+#[no_mangle]
+pub extern "C" fn inbuilt_powf(x: f32, y: f32) -> f32 {
+    x.powf(y)
+}
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -114,6 +120,7 @@ impl<F: FunctionManager> Default for JIT<F> {
             .unwrap();
         let mut builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
 
+        builder.symbol("inbuilt_powf", inbuilt_powf as *const u8);
         for (ident, addr) in F::function_symbols() {
             builder.symbol(ident, addr);
         }
@@ -169,6 +176,18 @@ impl<F: FunctionManager> JIT<F> {
         Ok(self.module.get_finalized_function(id))
     }
 
+    fn declare_inbuilt_functions(functions: &mut HashMap<String, (FuncRef, usize)>, builder: &mut FunctionBuilder, module: &mut JITModule) -> Result<(), ModuleError> {
+        let inbuilt_pow_signature = Signature {
+            params: vec![AbiParam::new(types::F32), AbiParam::new(types::F32)],
+            returns: vec![AbiParam::new(types::F32)],
+            call_conv: module.isa().default_call_conv(),
+        };
+        let func_id = module.declare_function("inbuilt_powf", cranelift_module::Linkage::Import, &inbuilt_pow_signature)?;
+        let func = (module.declare_func_in_func(func_id, builder.func), 2);
+        functions.insert("inbuilt_powf".to_owned(), func);
+        Ok(())
+    }
+
     fn translate(&mut self, node: Node, params: &[&str]) -> Result<(), EvalexprCompError> {
         for _name in params {
             self.ctx.func.signature.params.push(AbiParam::new(F32));
@@ -184,7 +203,9 @@ impl<F: FunctionManager> JIT<F> {
         builder.seal_block(entry_block);
 
         let variables = declare_variables(&mut builder, &node, params, entry_block)?;
-        let functions = HashMap::default();
+        let mut functions = HashMap::default();
+
+        Self::declare_inbuilt_functions(&mut functions, &mut builder, &mut self.module)?;
 
         let mut translator = ExprTranslator::<F> {
             builder,
