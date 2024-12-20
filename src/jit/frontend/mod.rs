@@ -90,8 +90,6 @@ pub struct Variables {
     pub uninitialized: Vec<String>,
 }
 
-pub struct NonEmptyUninitializedVariables(Box<[String]>);
-
 impl Variables {
     pub fn set_defined(&mut self, identifier: &String) {
         self.uninitialized = self
