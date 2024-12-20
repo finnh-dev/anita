@@ -1,13 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::function_manager::{DefaultFunctionManager, FunctionManager};
 use codegen::ir::FuncRef;
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
-use evalexpr::{build_operator_tree, EvalexprError, Node};
-use itertools::Itertools;
-use translator::ExprTranslator;
+use evalexpr::{EvalexprError, Node};
+use frontend::{parser, Expr};
+use peg::{error::ParseError, str::LineCol};
+use translator::{ExprTranslator, TranslatorError};
 use types::F32;
 
 pub mod compiled_function;
@@ -78,6 +79,32 @@ pub enum EvalexprCompError {
     VariableNotFound(String),
     UnsupportedOperator(evalexpr::Operator),
     FunctionNotFound(String),
+}
+
+#[derive(Debug)]
+pub enum JITError {
+    TranslatorError(TranslatorError),
+    ModuleError(ModuleError),
+    ParseError(ParseError<LineCol>),
+    UseOfUninitializedVariables(Box<[String]>)
+}
+
+impl From<TranslatorError> for JITError {
+    fn from(value: TranslatorError) -> Self {
+        Self::TranslatorError(value)
+    }
+}
+
+impl From<ModuleError> for JITError {
+    fn from(value: ModuleError) -> Self {
+        Self::ModuleError(value)
+    }
+}
+
+impl From<ParseError<LineCol>> for JITError {
+    fn from(value: ParseError<LineCol>) -> Self {
+        Self::ParseError(value)
+    }
 }
 
 impl EvalexprCompError {
@@ -155,8 +182,9 @@ impl<F: FunctionManager> JIT<F> {
         &mut self,
         expression: E,
         parameters: &[&str],
-    ) -> Result<*const u8, EvalexprCompError> {
-        let ast = build_operator_tree(expression.as_ref())?;
+    ) -> Result<*const u8, JITError> {
+        // let ast = build_operator_tree(expression.as_ref())?;
+        let ast = parser::expression(expression.as_ref()).unwrap();
 
         self.translate(ast, parameters)?;
 
@@ -176,19 +204,27 @@ impl<F: FunctionManager> JIT<F> {
         Ok(self.module.get_finalized_function(id))
     }
 
-    fn declare_inbuilt_functions(functions: &mut HashMap<String, (FuncRef, usize)>, builder: &mut FunctionBuilder, module: &mut JITModule) -> Result<(), ModuleError> {
+    fn declare_inbuilt_functions(
+        functions: &mut HashMap<String, (FuncRef, usize)>,
+        builder: &mut FunctionBuilder,
+        module: &mut JITModule,
+    ) -> Result<(), ModuleError> {
         let inbuilt_pow_signature = Signature {
             params: vec![AbiParam::new(types::F32), AbiParam::new(types::F32)],
             returns: vec![AbiParam::new(types::F32)],
             call_conv: module.isa().default_call_conv(),
         };
-        let func_id = module.declare_function("inbuilt_powf", cranelift_module::Linkage::Import, &inbuilt_pow_signature)?;
+        let func_id = module.declare_function(
+            "inbuilt_powf",
+            cranelift_module::Linkage::Import,
+            &inbuilt_pow_signature,
+        )?;
         let func = (module.declare_func_in_func(func_id, builder.func), 2);
         functions.insert("inbuilt_powf".to_owned(), func);
         Ok(())
     }
 
-    fn translate(&mut self, node: Node, params: &[&str]) -> Result<(), EvalexprCompError> {
+    fn translate(&mut self, root: Expr, params: &[&str]) -> Result<(), JITError> {
         for _name in params {
             self.ctx.func.signature.params.push(AbiParam::new(F32));
         }
@@ -202,7 +238,7 @@ impl<F: FunctionManager> JIT<F> {
         builder.switch_to_block(entry_block);
         builder.seal_block(entry_block);
 
-        let variables = declare_variables(&mut builder, &node, params, entry_block)?;
+        let variables = declare_variables(&mut builder, &root, params, entry_block)?;
         let mut functions = HashMap::default();
 
         Self::declare_inbuilt_functions(&mut functions, &mut builder, &mut self.module)?;
@@ -215,10 +251,10 @@ impl<F: FunctionManager> JIT<F> {
             _function_manager: std::marker::PhantomData,
         };
 
-        let Some(return_value) = translator.translate_operator(&node)? else {
-            return Err(EvalexprCompError::ExpressionEvaluatesToNoValue(node));
+        let root_copy = root.clone(); // TODO: Improve
+        let Some(return_value) = translator.translate_frontend(root)? else {
+            return Err(JITError::TranslatorError(TranslatorError::ExpressionEvaluatesToNoValue(root_copy)));
         };
-        let return_value = translator.convert_value_type(F32, return_value)?;
 
         let (mut builder, _, _, _) = translator.deconstruct();
 
@@ -231,57 +267,27 @@ impl<F: FunctionManager> JIT<F> {
 
 fn declare_variables(
     builder: &mut FunctionBuilder,
-    node: &Node,
+    node: &Expr,
     params: &[&str],
     entry_block: Block,
-) -> Result<HashMap<String, Variable>, EvalexprCompError> {
+) -> Result<HashMap<String, Variable>, JITError> {
     let mut variables = HashMap::new();
     let mut index = 0;
 
-    let assignments = node
-        .iter_write_variable_identifiers()
-        .collect::<Box<[&str]>>();
-    let initialized = params
-        .iter()
-        .merge(assignments.iter())
-        .collect::<HashSet<&&str>>();
-    let identifiers: Box<[&str]> = node.iter_variable_identifiers().unique().collect();
-    let uninitialized: Box<[&&str]> = identifiers
-        .iter()
-        .filter(|x| !initialized.contains(x))
-        .collect();
-    if uninitialized.len() > 0 {
-        return Err(EvalexprCompError::use_of_uninitialized_variables(
-            &uninitialized,
-        ));
-    }
-
-    let assignments = node
-        .iter_write_variable_identifiers()
-        .collect::<Box<[&str]>>();
-    let initialized = params
-        .iter()
-        .merge(assignments.iter())
-        .collect::<HashSet<&&str>>();
-    let identifiers: Box<[&str]> = node.iter_variable_identifiers().unique().collect();
-    let uninitialized: Box<[&&str]> = identifiers
-        .iter()
-        .filter(|x| !initialized.contains(x))
-        .collect();
-    if uninitialized.len() > 0 {
-        return Err(EvalexprCompError::use_of_uninitialized_variables(
-            &uninitialized,
-        ));
-    }
-
+    let mut vars = node.variables();
     for (i, name) in params.iter().enumerate() {
+        vars.set_defined(&name.to_string());
         let val = builder.block_params(entry_block)[i];
         let var = declare_variable(builder, &mut variables, &mut index, name);
         builder.def_var(var, val);
     }
+    let identifiers = match vars.initialized_identifiers() {
+        Ok(i) => i,
+        Err(uninitialized) => return Err(JITError::UseOfUninitializedVariables(uninitialized)),
+    };
 
     for name in identifiers {
-        let _ = declare_variable(builder, &mut variables, &mut index, name);
+        let _ = declare_variable(builder, &mut variables, &mut index, &name);
     }
 
     Ok(variables)

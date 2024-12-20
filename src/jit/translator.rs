@@ -8,7 +8,7 @@ use cranelift_jit::JITModule;
 use cranelift_module::Module;
 use evalexpr::{EvalexprError, Node};
 
-use super::{super::function_manager::FunctionManager, EvalexprCompError};
+use super::{super::function_manager::FunctionManager, frontend::Expr, EvalexprCompError};
 
 pub(super) struct ExprTranslator<'a, F: FunctionManager> {
     pub(super) builder: FunctionBuilder<'a>,
@@ -16,6 +16,12 @@ pub(super) struct ExprTranslator<'a, F: FunctionManager> {
     pub(super) functions: HashMap<String, (FuncRef, usize)>,
     pub(super) module: &'a mut JITModule,
     pub(super) _function_manager: std::marker::PhantomData<F>,
+}
+
+// TODO: improve Errors
+#[derive(Debug)]
+pub enum TranslatorError {
+    ExpressionEvaluatesToNoValue(Expr),
 }
 
 impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
@@ -28,6 +34,163 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
         &'a mut JITModule,
     ) {
         (self.builder, self.variables, self.functions, self.module)
+    }
+
+    pub fn translate_frontend(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
+        let expr_copy = expr.clone(); // TODO: Fix
+        match expr {
+            Expr::VariableRead { identifier } => {
+                let variable = self
+                    .variables
+                    .get(&identifier)
+                    .unwrap_or_else(|| panic!("Variable {} does not exist", identifier));
+                Ok(Some(self.builder.use_var(*variable)))
+            }
+            Expr::Const { value } => Ok(Some(self.builder.ins().f32const(value))),
+            Expr::Chain { side, ret } => {
+                let _side = self.translate_frontend(*side)?;
+                let ret = self.get_value(*ret)?;
+                Ok(Some(ret))
+            }
+            Expr::Call { identifier, args } => {
+                let Some(args) = args
+                    .into_iter()
+                    .try_fold(Some(Vec::new()), |mut acc, expr| {
+                        match self.translate_frontend(expr)? {
+                            Some(val) => {
+                                acc.as_mut().unwrap().push(val);
+                                Ok(acc)
+                            }
+                            None => Ok(acc),
+                        }
+                    })?
+                else {
+                    return Err(TranslatorError::ExpressionEvaluatesToNoValue(expr_copy));
+                };
+
+                Ok(Some(
+                    self.function_call(&identifier, args.as_slice()).unwrap(),
+                ))
+            }
+            Expr::Add { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fadd(lhs, rhs)))
+            }
+            Expr::Sub { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fsub(lhs, rhs)))
+            }
+            Expr::Mul { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fmul(lhs, rhs)))
+            }
+            Expr::Div { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fdiv(lhs, rhs)))
+            }
+            Expr::Mod { lhs, rhs } => {
+                let (value, modulus) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                let div = self.builder.ins().fdiv(value, modulus);
+                let trunc = self.builder.ins().trunc(div);
+                let full_div = self.builder.ins().fmul(trunc, modulus);
+                Ok(Some(self.builder.ins().fsub(value, full_div)))
+            }
+            Expr::Exp { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(
+                    self.function_call("inbuilt_powf", &[lhs, rhs]).unwrap(),
+                )) // TODO: FIX!
+            }
+            Expr::Neg { value } => {
+                let value = self.get_value(*value)?;
+                Ok(Some(self.builder.ins().fneg(value)))
+            }
+            Expr::Assign { identifier, value } => {
+                let variable = self
+                    .variables
+                    .get(&identifier)
+                    .copied()
+                    .unwrap_or_else(|| panic!("Variable {} does not exist", identifier));
+                let value = self.get_value(*value)?;
+                self.builder.def_var(variable, value);
+                Ok(None)
+            }
+            Expr::Eq { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, lhs, rhs)))
+            }
+            Expr::Neq { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fcmp(FloatCC::NotEqual, lhs, rhs)))
+            }
+            Expr::Gt { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::GreaterThan,
+                    lhs,
+                    rhs,
+                )))
+            }
+            Expr::Lt { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fcmp(FloatCC::LessThan, lhs, rhs)))
+            }
+            Expr::Geq { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::GreaterThanOrEqual,
+                    lhs,
+                    rhs,
+                )))
+            }
+            Expr::Leq { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::LessThanOrEqual,
+                    lhs,
+                    rhs,
+                )))
+            }
+            Expr::And { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                let zero = self.builder.ins().f32const(0.0);
+                let two = self.builder.ins().f32const(2.0);
+                let lhs = self.builder.ins().fcmp(FloatCC::NotEqual, lhs, zero);
+                let rhs = self.builder.ins().fcmp(FloatCC::NotEqual, rhs, zero);
+                let intermediate = self.builder.ins().fadd(lhs, rhs);
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::Equal,
+                    intermediate,
+                    two,
+                )))
+            }
+            Expr::Or { lhs, rhs } => {
+                let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
+                let zero = self.builder.ins().f32const(0.0);
+                let one = self.builder.ins().f32const(1.0);
+                let lhs = self.builder.ins().fcmp(FloatCC::NotEqual, lhs, zero);
+                let rhs = self.builder.ins().fcmp(FloatCC::NotEqual, rhs, zero);
+                let intermediate = self.builder.ins().fadd(lhs, rhs);
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::Equal,
+                    intermediate,
+                    one,
+                )))
+            }
+            Expr::Not { value } => {
+                let value = self.get_value(*value)?;
+                let zero = self.builder.ins().f32const(0.0);
+                Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, value, zero)))
+            }
+        }
+    }
+
+    fn get_value(&mut self, expr: Expr) -> Result<Value, TranslatorError> {
+        let expr_copy = expr.clone();
+        let Some(value) = self.translate_frontend(expr)? else {
+            return Err(TranslatorError::ExpressionEvaluatesToNoValue(expr_copy));
+        };
+        Ok(value)
     }
 
     pub fn translate_operator(&mut self, node: &Node) -> Result<Option<Value>, EvalexprCompError> {
@@ -102,31 +265,43 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
             evalexpr::Operator::Exp => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 Ok(Some(self.function_call("inbuilt_powf", &[lhs, rhs])?))
-            },
+            }
             evalexpr::Operator::Eq => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, lhs, rhs)))
-            },
+            }
             evalexpr::Operator::Neq => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 Ok(Some(self.builder.ins().fcmp(FloatCC::NotEqual, lhs, rhs)))
-            },
+            }
             evalexpr::Operator::Gt => {
                 let (lhs, rhs) = self.binary_operation(node)?;
-                Ok(Some(self.builder.ins().fcmp(FloatCC::GreaterThan, lhs, rhs)))
-            },
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::GreaterThan,
+                    lhs,
+                    rhs,
+                )))
+            }
             evalexpr::Operator::Lt => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 Ok(Some(self.builder.ins().fcmp(FloatCC::LessThan, lhs, rhs)))
-            },
+            }
             evalexpr::Operator::Geq => {
                 let (lhs, rhs) = self.binary_operation(node)?;
-                Ok(Some(self.builder.ins().fcmp(FloatCC::GreaterThanOrEqual, lhs, rhs)))
-            },
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::GreaterThanOrEqual,
+                    lhs,
+                    rhs,
+                )))
+            }
             evalexpr::Operator::Leq => {
                 let (lhs, rhs) = self.binary_operation(node)?;
-                Ok(Some(self.builder.ins().fcmp(FloatCC::LessThanOrEqual, lhs, rhs)))
-            },
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::LessThanOrEqual,
+                    lhs,
+                    rhs,
+                )))
+            }
             evalexpr::Operator::And => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 let zero = self.builder.ins().f32const(0.0);
@@ -134,8 +309,12 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 let lhs = self.builder.ins().fcmp(FloatCC::NotEqual, lhs, zero);
                 let rhs = self.builder.ins().fcmp(FloatCC::NotEqual, rhs, zero);
                 let intermediate = self.builder.ins().fadd(lhs, rhs);
-                Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, intermediate, two)))
-            },
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::Equal,
+                    intermediate,
+                    two,
+                )))
+            }
             evalexpr::Operator::Or => {
                 let (lhs, rhs) = self.binary_operation(node)?;
                 let zero = self.builder.ins().f32const(0.0);
@@ -143,13 +322,17 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 let lhs = self.builder.ins().fcmp(FloatCC::NotEqual, lhs, zero);
                 let rhs = self.builder.ins().fcmp(FloatCC::NotEqual, rhs, zero);
                 let intermediate = self.builder.ins().fadd(lhs, rhs);
-                Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, intermediate, one)))
-            },
+                Ok(Some(self.builder.ins().fcmp(
+                    FloatCC::Equal,
+                    intermediate,
+                    one,
+                )))
+            }
             evalexpr::Operator::Not => {
-                let zero = self.builder.ins().f32const(0.0);
                 let value = self.unary_operation(node)?;
+                let zero = self.builder.ins().f32const(0.0);
                 Ok(Some(self.builder.ins().fcmp(FloatCC::Equal, value, zero)))
-            },
+            }
             evalexpr::Operator::Assign => {
                 let children = node.children();
                 if children.len() != 2 {
@@ -186,15 +369,33 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
 
                 Ok(None)
             }
-            evalexpr::Operator::AddAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::SubAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::MulAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::DivAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::ModAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::ExpAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::AndAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::OrAssign => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
-            evalexpr::Operator::Tuple => Err(EvalexprCompError::UnsupportedOperator(node.operator().clone())),
+            evalexpr::Operator::AddAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::SubAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::MulAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::DivAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::ModAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::ExpAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::AndAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::OrAssign => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
+            evalexpr::Operator::Tuple => Err(EvalexprCompError::UnsupportedOperator(
+                node.operator().clone(),
+            )),
             evalexpr::Operator::Chain => {
                 let mut return_value = None;
                 for ast in node.children() {
@@ -203,7 +404,9 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 Ok(return_value)
             }
             evalexpr::Operator::Const { value } => match value {
-                evalexpr::Value::String(_) => Err(EvalexprCompError::EvalexprError(EvalexprError::CustomMessage("String is not supported".to_owned()))),
+                evalexpr::Value::String(_) => Err(EvalexprCompError::EvalexprError(
+                    EvalexprError::CustomMessage("String is not supported".to_owned()),
+                )),
                 evalexpr::Value::Float(value) => {
                     Ok(Some(self.builder.ins().f32const(*value as f32)))
                 }
@@ -211,10 +414,16 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 evalexpr::Value::Boolean(value) => {
                     Ok(Some(self.builder.ins().iconst(I64, *value as i64)))
                 }
-                evalexpr::Value::Tuple(_) => Err(EvalexprCompError::EvalexprError(EvalexprError::CustomMessage("Tuple is not supported".to_owned()))),
-                evalexpr::Value::Empty => Err(EvalexprCompError::EvalexprError(EvalexprError::CustomMessage("Empty is not supported".to_owned()))),
+                evalexpr::Value::Tuple(_) => Err(EvalexprCompError::EvalexprError(
+                    EvalexprError::CustomMessage("Tuple is not supported".to_owned()),
+                )),
+                evalexpr::Value::Empty => Err(EvalexprCompError::EvalexprError(
+                    EvalexprError::CustomMessage("Empty is not supported".to_owned()),
+                )),
             },
-            evalexpr::Operator::VariableIdentifierWrite { identifier: _ } => unreachable!("VariableWrite should be handled in assignment"),
+            evalexpr::Operator::VariableIdentifierWrite { identifier: _ } => {
+                unreachable!("VariableWrite should be handled in assignment")
+            }
             evalexpr::Operator::VariableIdentifierRead { identifier } => {
                 let variable = self
                     .variables
