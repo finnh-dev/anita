@@ -166,14 +166,13 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
             Expr::Or { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
                 let zero = self.builder.ins().f32const(0.0);
-                let one = self.builder.ins().f32const(1.0);
                 let lhs = self.builder.ins().fcmp(FloatCC::NotEqual, lhs, zero);
                 let rhs = self.builder.ins().fcmp(FloatCC::NotEqual, rhs, zero);
                 let intermediate = self.builder.ins().fadd(lhs, rhs);
                 Ok(Some(self.builder.ins().fcmp(
-                    FloatCC::Equal,
+                    FloatCC::NotEqual,
                     intermediate,
-                    one,
+                    zero,
                 )))
             }
             Expr::Not { value } => {

@@ -302,7 +302,7 @@ fn declare_variable(
     let var = Variable::new(*index);
     if !variables.contains_key(name) {
         variables.insert(name.into(), var);
-        builder.declare_var(var, F32); // TODO: allow different variable types or make default behavior
+        builder.declare_var(var, F32);
         *index += 1;
     }
     var
