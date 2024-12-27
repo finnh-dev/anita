@@ -213,7 +213,7 @@ impl<F: FunctionManager> JIT<F> {
         };
 
         let root_copy = root.clone(); // TODO: Improve
-        let Some(return_value) = translator.translate_frontend(root)? else {
+        let Some(return_value) = translator.translate(root)? else {
             return Err(JITError::TranslatorError(TranslatorError::ExpressionEvaluatesToNoValue(root_copy)));
         };
 

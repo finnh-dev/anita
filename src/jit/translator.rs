@@ -40,7 +40,7 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
         self.builder
     }
 
-    pub fn translate_frontend(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
+    pub fn translate(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
         match expr {
             Expr::VariableRead { identifier } => {
                 let variable = self
@@ -51,7 +51,7 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
             }
             Expr::Const { value } => Ok(Some(self.builder.ins().f32const(value))),
             Expr::Chain { side, ret } => {
-                let _side = self.translate_frontend(*side)?;
+                let _side = self.translate(*side)?;
                 let ret = self.get_value(*ret)?;
                 Ok(Some(ret))
             }
@@ -59,7 +59,7 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 let args = args
                     .into_iter()
                     .try_fold(Vec::new(), |mut acc, expr| {
-                        match self.translate_frontend(expr)? {
+                        match self.translate(expr)? {
                             Some(val) => {
                                 acc.push(val);
                                 Result::<Vec<Value>, TranslatorError>::Ok(acc)
@@ -186,7 +186,7 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
 
     fn get_value(&mut self, expr: Expr) -> Result<Value, TranslatorError> {
         let expr_copy = expr.clone();
-        let Some(value) = self.translate_frontend(expr)? else {
+        let Some(value) = self.translate(expr)? else {
             return Err(TranslatorError::ExpressionEvaluatesToNoValue(expr_copy));
         };
         Ok(value)
