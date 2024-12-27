@@ -5,9 +5,9 @@ use cranelift::{
     prelude::{FloatCC, FunctionBuilder, InstBuilder, Value, Variable},
 };
 use cranelift_jit::JITModule;
-use cranelift_module::Module;
+use cranelift_module::{Module, ModuleError};
 
-use super::{super::function_manager::FunctionManager, frontend::Expr, EvalexprCompError};
+use super::{super::function_manager::FunctionManager, frontend::Expr};
 
 pub(super) struct ExprTranslator<'a, F: FunctionManager> {
     pub(super) builder: FunctionBuilder<'a>,
@@ -21,22 +21,26 @@ pub(super) struct ExprTranslator<'a, F: FunctionManager> {
 #[derive(Debug)]
 pub enum TranslatorError {
     ExpressionEvaluatesToNoValue(Expr),
+    FunctionNotFound(String),
+    ModuleError(ModuleError),
+}
+
+impl From<ModuleError> for TranslatorError {
+    fn from(value: ModuleError) -> Self {
+        Self::ModuleError(value)
+    }
 }
 
 impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
     pub fn deconstruct(
         self,
-    ) -> (
-        FunctionBuilder<'a>,
-        HashMap<String, Variable>,
-        HashMap<String, (FuncRef, usize)>,
-        &'a mut JITModule,
-    ) {
-        (self.builder, self.variables, self.functions, self.module)
+    ) ->
+        FunctionBuilder<'a>
+    {
+        self.builder
     }
 
     pub fn translate_frontend(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
-        let expr_copy = expr.clone(); // TODO: Fix
         match expr {
             Expr::VariableRead { identifier } => {
                 let variable = self
@@ -52,23 +56,20 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
                 Ok(Some(ret))
             }
             Expr::Call { identifier, args } => {
-                let Some(args) = args
+                let args = args
                     .into_iter()
-                    .try_fold(Some(Vec::new()), |mut acc, expr| {
+                    .try_fold(Vec::new(), |mut acc, expr| {
                         match self.translate_frontend(expr)? {
                             Some(val) => {
-                                acc.as_mut().unwrap().push(val);
-                                Ok(acc)
+                                acc.push(val);
+                                Result::<Vec<Value>, TranslatorError>::Ok(acc)
                             }
                             None => Ok(acc),
                         }
-                    })?
-                else {
-                    return Err(TranslatorError::ExpressionEvaluatesToNoValue(expr_copy));
-                };
+                    })?;
 
                 Ok(Some(
-                    self.function_call(&identifier, args.as_slice()).unwrap(),
+                    self.function_call(&identifier, args.as_slice())?,
                 ))
             }
             Expr::Add { lhs, rhs } => {
@@ -97,8 +98,8 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
             Expr::Exp { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
                 Ok(Some(
-                    self.function_call("inbuilt_powf", &[lhs, rhs]).unwrap(),
-                )) // TODO: FIX!
+                    self.function_call("inbuilt_powf", &[lhs, rhs])?,
+                ))
             }
             Expr::Neg { value } => {
                 let value = self.get_value(*value)?;
@@ -195,21 +196,21 @@ impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
         &mut self,
         identifier: &str,
         params: &[Value],
-    ) -> Result<Value, EvalexprCompError> {
+    ) -> Result<Value, TranslatorError> {
         let (func_ref, _) = self.declare_function(identifier)?;
-        let call = self.builder.ins().call(func_ref, &params);
+        let call = self.builder.ins().call(func_ref, params);
         Ok(self.builder.inst_results(call)[0])
     }
 
     fn declare_function(
         &mut self,
         identifier: &str,
-    ) -> Result<(FuncRef, usize), EvalexprCompError> {
+    ) -> Result<(FuncRef, usize), TranslatorError> {
         let Some(func) = self.functions.get(identifier) else {
             let Some(signature) =
                 F::function_signature(identifier, self.module.isa().default_call_conv())
             else {
-                return Err(EvalexprCompError::FunctionNotFound(identifier.to_owned()));
+                return Err(TranslatorError::FunctionNotFound(identifier.to_owned()));
             };
             let func_id = self.module.declare_function(
                 identifier,

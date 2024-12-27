@@ -435,9 +435,10 @@ impl Expr {
     }
 
     #[allow(unused)]
+    #[allow(clippy::inherent_to_string)]
     fn to_string(&self) -> String {
         match self {
-            Expr::VariableRead { identifier } => format!("{identifier}"),
+            Expr::VariableRead { identifier } => identifier.to_string(),
             Expr::Const { value } => format!("{value}"),
             Expr::Chain { side, ret } => format!("({}); ({})", side.to_string(), ret.to_string()),
             Expr::Call { identifier, args } => {

@@ -5,7 +5,6 @@ use codegen::ir::FuncRef;
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
-use evalexpr::{EvalexprError, Node};
 use frontend::{parser, Expr};
 use peg::{error::ParseError, str::LineCol};
 use translator::{ExprTranslator, TranslatorError};
@@ -27,7 +26,7 @@ macro_rules! compile_expression {
     ($expression:expr, ($($parameter:ident),+) -> f32) => {
         {
             use std::mem;
-            use $crate::jit::{compiled_function::CompiledFunction, EvalexprCompError, JIT};
+            use $crate::jit::{compiled_function::CompiledFunction, JIT};
             use $crate::function_manager::DefaultFunctionManager;
 
             let mut jit = JIT::<DefaultFunctionManager>::default();
@@ -47,7 +46,7 @@ macro_rules! compile_expression {
     ($expression:expr, ($($parameter:ident),+) -> f32, $function_manager:ty) => {
         {
             use std::mem;
-            use $crate::jit::{compiled_function::CompiledFunction, EvalexprCompError, JIT};
+            use $crate::jit::{compiled_function::CompiledFunction, JIT};
 
             let mut jit = JIT::<$function_manager>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
@@ -62,23 +61,6 @@ macro_rules! compile_expression {
             }
         }
     };
-}
-
-#[derive(Debug)]
-pub enum EvalexprCompError {
-    EvalexprError(EvalexprError),
-    CompilerError(ModuleError),
-    UseOfUninitializedVariables(Box<[String]>),
-    UnsupportedTypeConversion {
-        target_type: Type,
-        source_type: Type,
-    },
-    ExpressionEvaluatesToNoValue(Node),
-    UseOfUnsupportedType(Type),
-    MalformedOperatorTree(Node),
-    VariableNotFound(String),
-    UnsupportedOperator(evalexpr::Operator),
-    FunctionNotFound(String),
 }
 
 #[derive(Debug)]
@@ -107,26 +89,6 @@ impl From<ParseError<LineCol>> for JITError {
     }
 }
 
-impl EvalexprCompError {
-    pub fn use_of_uninitialized_variables(uninitialized: &[&&str]) -> EvalexprCompError {
-        EvalexprCompError::UseOfUninitializedVariables(
-            uninitialized.iter().map(|x| x.to_string()).collect(),
-        )
-    }
-}
-
-impl From<EvalexprError> for EvalexprCompError {
-    fn from(value: EvalexprError) -> Self {
-        EvalexprCompError::EvalexprError(value)
-    }
-}
-
-impl From<ModuleError> for EvalexprCompError {
-    fn from(value: ModuleError) -> Self {
-        EvalexprCompError::CompilerError(value)
-    }
-}
-
 pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
     builder_context: FunctionBuilderContext,
     ctx: codegen::Context,
@@ -137,14 +99,14 @@ pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
 impl<F: FunctionManager> Default for JIT<F> {
     fn default() -> Self {
         let mut flag_builder = settings::builder();
-        flag_builder.set("use_colocated_libcalls", "false").unwrap();
-        flag_builder.set("is_pic", "false").unwrap();
+        flag_builder.set("use_colocated_libcalls", "false").expect("Failed to set JIT flags");
+        flag_builder.set("is_pic", "false").expect("Failed to set JIT flags");
         let isa_builder = cranelift_native::builder().unwrap_or_else(|msg| {
             panic!("host machine is not supported: {}", msg);
         });
         let isa = isa_builder
             .finish(settings::Flags::new(flag_builder))
-            .unwrap();
+            .expect("Failed to finish ISA builder");
         let mut builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
 
         builder.symbol("inbuilt_powf", inbuilt_powf as *const u8);
@@ -183,8 +145,7 @@ impl<F: FunctionManager> JIT<F> {
         expression: E,
         parameters: &[&str],
     ) -> Result<*const u8, JITError> {
-        // let ast = build_operator_tree(expression.as_ref())?;
-        let ast = parser::expression(expression.as_ref()).unwrap();
+        let ast = parser::expression(expression.as_ref())?;
 
         self.translate(ast, parameters)?;
 
@@ -256,7 +217,7 @@ impl<F: FunctionManager> JIT<F> {
             return Err(JITError::TranslatorError(TranslatorError::ExpressionEvaluatesToNoValue(root_copy)));
         };
 
-        let (mut builder, _, _, _) = translator.deconstruct();
+        let mut builder = translator.deconstruct();
 
         builder.ins().return_(&[return_value]);
         builder.finalize();
