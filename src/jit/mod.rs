@@ -68,7 +68,8 @@ pub enum JITError {
     TranslatorError(TranslatorError),
     ModuleError(ModuleError),
     ParseError(ParseError<LineCol>),
-    UseOfUninitializedVariables(Box<[String]>)
+    UseOfUninitializedVariables(Box<[String]>),
+    RootEvaluatesInNoValue,
 }
 
 impl From<TranslatorError> for JITError {
@@ -212,9 +213,8 @@ impl<F: FunctionManager> JIT<F> {
             _function_manager: std::marker::PhantomData,
         };
 
-        let root_copy = root.clone(); // TODO: Improve
         let Some(return_value) = translator.translate(root)? else {
-            return Err(JITError::TranslatorError(TranslatorError::ExpressionEvaluatesToNoValue(root_copy)));
+            return Err(JITError::RootEvaluatesInNoValue);
         };
 
         let mut builder = translator.get_builder();
