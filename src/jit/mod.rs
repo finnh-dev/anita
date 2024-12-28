@@ -217,7 +217,7 @@ impl<F: FunctionManager> JIT<F> {
             return Err(JITError::TranslatorError(TranslatorError::ExpressionEvaluatesToNoValue(root_copy)));
         };
 
-        let mut builder = translator.deconstruct();
+        let mut builder = translator.get_builder();
 
         builder.ins().return_(&[return_value]);
         builder.finalize();

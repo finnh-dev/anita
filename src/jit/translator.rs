@@ -32,7 +32,7 @@ impl From<ModuleError> for TranslatorError {
 }
 
 impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
-    pub fn deconstruct(
+    pub fn get_builder(
         self,
     ) ->
         FunctionBuilder<'a>
