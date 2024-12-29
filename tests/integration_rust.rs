@@ -12,24 +12,34 @@ fn owned_input() {
 }
 
 #[test]
-#[ignore = "improve errors first"]
 fn empty_input() {
     let expr = "";
     let result = compile_expression!(expr, (x) -> f32);
     match result {
-        Err(JITError::TranslatorError(_)) => assert!(true),
+        Err(JITError::ParseError(_)) => assert!(true),
         Ok(_) => panic!("Test failed by succeeding"),
         Err(e) => panic!(
-            "Expected \'TODO\' but got: {:?}",
+            "Expected JITError::RootEvaluatesInNoValue but got: {:?}",
             e
         ),
     }
 }
 
 #[test]
-#[ignore = "TODO"]
 fn use_of_uninitialized_variables() {
-    
+    let result = compile_expression!("a + b + c + x", (x) -> f32);
+    let expected_unitialized = ["a", "b", "c"];
+    match result {
+        Err(JITError::UseOfUninitializedVariables(vars)) => {
+            vars.iter().for_each(|var| assert!(expected_unitialized.contains(&var.as_ref())));
+            expected_unitialized.iter().for_each(|var| assert!(vars.contains(&(*var).to_owned())));
+        },
+        Ok(_) => panic!("Test failed by succeeding"),
+        Err(e) => panic!(
+            "Expected JITError::RootEvaluatesInNoValue but got: {:?}",
+            e
+        ),
+    }
 }
 
 #[test]
