@@ -18,141 +18,173 @@ impl DefaultFunctionManager {}
 #[cfg(not(feature = "no-default-functions"))]
 #[function_manager]
 impl DefaultFunctionManager {
-    fn min(x: f32, y: f32) -> f32 {
+    #[name = "min"]
+    fn internal_min(x: f32, y: f32) -> f32 {
         x.min(y)
     }
 
-    fn max(x: f32, y: f32) -> f32 {
+    #[name = "max"]
+    fn internal_max(x: f32, y: f32) -> f32 {
         x.max(y)
     }
 
-    fn floor(x: f32) -> f32 {
+    #[name = "floor"]
+    fn internal_floor(x: f32) -> f32 {
         x.floor()
     }
 
-    fn round(x: f32) -> f32 {
+    #[name = "round"]
+    fn internal_round(x: f32) -> f32 {
         x.round()
     }
 
-    fn ceil(x: f32) -> f32 {
+    #[name = "ceil"]
+    fn internal_ceil(x: f32) -> f32 {
         x.ceil()
     }
 
-    fn is_nan(x: f32) -> f32 {
+    #[name = "is_nan"]
+    fn internal_is_nan(x: f32) -> f32 {
         x.is_nan() as u8 as f32
     }
 
-    fn is_finite(x: f32) -> f32 {
+    #[name = "is_finite"]
+    fn internal_is_finite(x: f32) -> f32 {
         x.is_finite() as u8 as f32
     }
 
-    fn is_infinite(x: f32) -> f32 {
+    #[name = "is_infinite"]
+    fn internal_is_infinite(x: f32) -> f32 {
         x.is_infinite() as u8 as f32
     }
 
-    fn is_normal(x: f32) -> f32 {
+    #[name = "is_normal"]
+    fn internal_is_normal(x: f32) -> f32 {
         x.is_normal() as u8 as f32
     }
 
-    fn pow(a: f32, x: f32) -> f32 {
+    #[name = "pow"]
+    fn internal_pow(a: f32, x: f32) -> f32 {
         a.powf(x)
     }
 
     #[name = "mod"]
-    fn modulo(x: f32, y: f32) -> f32 {
+    fn internal_mod(x: f32, y: f32) -> f32 {
         x % y
     }
 
-    fn ln(x: f32) -> f32 {
+    #[name = "ln"]
+    fn internal_ln(x: f32) -> f32 {
         x.ln()
     }
 
-    fn log2(x: f32) -> f32 {
+    #[name = "log2"]
+    fn internal_log2(x: f32) -> f32 {
         x.log2()
     }
 
-    fn log10(x: f32) -> f32 {
+    #[name = "log10"]
+    fn internal_log10(x: f32) -> f32 {
         x.log10()
     }
 
-    fn exp(x: f32) -> f32 {
+    #[name = "exp"]
+    fn internal_exp(x: f32) -> f32 {
         x.exp()
     }
 
-    fn exp2(x: f32) -> f32 {
+    #[name = "exp2"]
+    fn internal_exp2(x: f32) -> f32 {
         x.exp2()
     }
 
-    fn cos(x: f32) -> f32 {
+    #[name = "cos"]
+    fn internal_cos(x: f32) -> f32 {
         x.cos()
     }
 
-    fn acos(x: f32) -> f32 {
+    #[name = "acos"]
+    fn internal_acos(x: f32) -> f32 {
         x.acos()
     }
 
-    fn cosh(x: f32) -> f32 {
+    #[name = "cosh"]
+    fn internal_cosh(x: f32) -> f32 {
         x.cosh()
     }
 
-    fn acosh(x: f32) -> f32 {
+    #[name = "acosh"]
+    fn internal_acosh(x: f32) -> f32 {
         x.acosh()
     }
 
-    fn sin(x: f32) -> f32 {
+    #[name = "sin"]
+    fn internal_sin(x: f32) -> f32 {
         x.sin()
     }
 
-    fn asin(x: f32) -> f32 {
+    #[name = "asin"]
+    fn internal_asin(x: f32) -> f32 {
         x.asin()
     }
 
-    fn sinh(x: f32) -> f32 {
+    #[name = "sinh"]
+    fn internal_sinh(x: f32) -> f32 {
         x.sinh()
     }
 
-    fn asinh(x: f32) -> f32 {
+    #[name = "asinh"]
+    fn internal_asinh(x: f32) -> f32 {
         x.asinh()
     }
 
-    fn tan(x: f32) -> f32 {
+    #[name = "tan"]
+    fn internal_tan(x: f32) -> f32 {
         x.tan()
     }
 
-    fn atan(x: f32) -> f32 {
+    #[name = "atan"]
+    fn internal_atan(x: f32) -> f32 {
         x.atan()
     }
 
-    fn atan2(x: f32, y: f32) -> f32 {
+    #[name = "atan2"]
+    fn internal_atan2(x: f32, y: f32) -> f32 {
         x.atan2(y)
     }
 
-    fn tanh(x: f32) -> f32 {
+    #[name = "tanh"]
+    fn internal_tanh(x: f32) -> f32 {
         x.tanh()
     }
 
-    fn atanh(x: f32) -> f32 {
+    #[name = "atanh"]
+    fn internal_atanh(x: f32) -> f32 {
         x.atanh()
     }
 
-    fn sqrt(x: f32) -> f32 {
+    #[name = "sqrt"]
+    fn internal_sqrt(x: f32) -> f32 {
         x.sqrt()
     }
 
-    fn cbrt(x: f32) -> f32 {
+    #[name = "cbrt"]
+    fn internal_cbrt(x: f32) -> f32 {
         x.cbrt()
     }
 
-    fn abs(x: f32) -> f32 {
+    #[name = "abs"]
+    fn internal_abs(x: f32) -> f32 {
         x.abs()
     }
 
-    fn hypot(x: f32, y: f32) -> f32 {
+    #[name = "hypot"]
+    fn internal_hypot(x: f32, y: f32) -> f32 {
         x.hypot(y)
     }
 
     #[name = "if"]
-    fn case(cond: f32, a: f32, b: f32) -> f32 {
+    fn internal_if(cond: f32, a: f32, b: f32) -> f32 {
         if cond.is_normal() && cond != 0.0 {
             a
         } else {
