@@ -503,9 +503,9 @@ peg::parser!(pub grammar parser() for str {
         a:(@) _ "^" _ b:@ { Expr::Exp{ lhs: Box::new(a), rhs: Box::new(b) } }
         "!" a:@ { Expr::Not{ value: Box::new(a) } }
         "-" a:@  { Expr::Neg { value: Box::new(a) } }
-        "(" _ e:expression() _ ")" { e }
+        "(" _ e:operations() _ ")" { e }
         --
-        i:identifier() _ "(" args:((_ e:expression() _ {e}) ** ",") ")" { Expr::Call { identifier: i, args } }
+        i:identifier() _ "(" args:((_ e:operations() _ {e}) ** ",") ")" { Expr::Call { identifier: i, args } }
         i:identifier() { Expr::VariableRead { identifier: i }}
     }
 
