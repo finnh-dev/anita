@@ -474,6 +474,9 @@ impl Expr {
 
 peg::parser!(pub grammar parser() for str {
     pub rule expression() -> Expr
+    = _ e:operations() _ {e}
+    
+    rule operations() -> Expr
     = precedence!{
         s:@ _ ";" _ r:(@) { Expr::Chain { side: Box::new(s), ret: Box::new(r) } }
         --
@@ -496,8 +499,8 @@ peg::parser!(pub grammar parser() for str {
         a:(@) _ "*" _ b:@ { Expr::Mul{ lhs: Box::new(a), rhs: Box::new(b) } }
         a:(@) _ "/" _ b:@ { Expr::Div{ lhs: Box::new(a), rhs: Box::new(b) } }
         a:(@) _ "%" _ b:@ { Expr::Mod{ lhs: Box::new(a), rhs: Box::new(b) } }
-        a:(@) _ "^" _ b:@ { Expr::Exp{ lhs: Box::new(a), rhs: Box::new(b) } }
         --
+        a:(@) _ "^" _ b:@ { Expr::Exp{ lhs: Box::new(a), rhs: Box::new(b) } }
         "!" a:@ { Expr::Not{ value: Box::new(a) } }
         "-" a:@  { Expr::Neg { value: Box::new(a) } }
         "(" _ e:expression() _ ")" { e }
