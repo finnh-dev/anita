@@ -1,4 +1,3 @@
-
 use internal_macros::function_manager;
 
 pub trait FunctionManager {
@@ -14,11 +13,8 @@ pub struct DefaultFunctionManager;
 
 #[cfg(feature = "no-default-functions")]
 #[function_manager]
-impl DefaultFunctionManager {
+impl DefaultFunctionManager {}
 
-}
-
-// TODO: fix multiple definitions
 #[cfg(not(feature = "no-default-functions"))]
 #[function_manager]
 impl DefaultFunctionManager {
