@@ -46,7 +46,6 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
         let mut function = (**function).clone();
         function.attrs.clear();
         quote! {
-            #[no_mangle]
             pub extern "C" #function
         }
     });
