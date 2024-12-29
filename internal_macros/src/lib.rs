@@ -19,11 +19,13 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
     let impl_block = parse_macro_input!(input as ItemImpl);
     // eprintln!("impl_block: {:#?}", impl_block);
 
-    let trait_name = match crate_name("anita").unwrap_or(proc_macro_crate::FoundCrate::Itself) {
-        proc_macro_crate::FoundCrate::Itself => quote! { crate::function_manager::FunctionManager },
-        proc_macro_crate::FoundCrate::Name(_) => quote! { anita::function_manager::FunctionManager },
+    let crate_name = match crate_name("anita").unwrap_or(proc_macro_crate::FoundCrate::Itself) {
+        proc_macro_crate::FoundCrate::Itself => quote! { crate },
+        proc_macro_crate::FoundCrate::Name(_) => quote! { anita },
     };
 
+    // let trait_name = quote! { #crate_name::function_manager::FunctionManager };
+    // let cranelift_path = q
 
     let functions = match impl_block
         .items
@@ -75,10 +77,10 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
         let params = sig
             .params
             .iter()
-            .map(|ty| to_cranelift_parameter(ty.as_str()));
-        let return_type = to_cranelift_parameter(sig.return_type.as_str());
+            .map(|ty| to_cranelift_parameter(ty.as_str(), &crate_name));
+        let return_type = to_cranelift_parameter(sig.return_type.as_str(), &crate_name);
         quote! {
-            stringify!(#name) => Some(cranelift::prelude::Signature {
+            stringify!(#name) => Some(#crate_name::cranelift::prelude::Signature {
                 params: std::vec![#(#params,)*],
                 returns: std::vec![#return_type],
                 call_conv: calling_convention,
@@ -93,7 +95,7 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
             #(#extern_c_functions)*
         }
 
-        impl #trait_name for #impl_type {
+        impl #crate_name::function_manager::FunctionManager for #impl_type {
             fn function_address(identifier: &str) -> Option<*const u8> {
                 match identifier {
                     #(#match_func_addr,)*
@@ -105,8 +107,8 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
             }
             fn function_signature(
                 identifier: &str,
-                calling_convention: cranelift::prelude::isa::CallConv,
-            ) -> Option<cranelift::prelude::Signature> {
+                calling_convention: #crate_name::cranelift::prelude::isa::CallConv,
+            ) -> Option<#crate_name::cranelift::prelude::Signature> {
                 match identifier {
                     #(#match_signatures,)*
                     _ => None
@@ -186,14 +188,14 @@ fn extract_signature(function: &ImplItemFn) -> FnSignature {
     }
 }
 
-fn to_cranelift_type(ty: &str) -> proc_macro2::TokenStream {
+fn to_cranelift_type(ty: &str, crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     match ty {
-        "f32" => quote! {cranelift::prelude::types::F32},
+        "f32" => quote! {#crate_name::cranelift::prelude::types::F32},
         _ => panic!("use of unsupported parameter type: {}", ty),
     }
 }
 
-fn to_cranelift_parameter(parameter_type: &str) -> proc_macro2::TokenStream {
-    let parameter_type = to_cranelift_type(parameter_type);
-    quote! {cranelift::prelude::AbiParam::new(#parameter_type)}
+fn to_cranelift_parameter(parameter_type: &str, crate_name: &proc_macro2::TokenStream) -> proc_macro2::TokenStream {
+    let parameter_type = to_cranelift_type(parameter_type, crate_name);
+    quote! {#crate_name::cranelift::prelude::AbiParam::new(#parameter_type)}
 }

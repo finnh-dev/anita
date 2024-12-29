@@ -6,3 +6,4 @@ pub mod function_manager;
 pub mod jit;
 
 pub use internal_macros::function_manager as function_manager;
+pub use cranelift;
