@@ -9,11 +9,11 @@ use cranelift_module::{Module, ModuleError};
 
 use super::{super::function_manager::FunctionManager, frontend::Expr};
 
-pub(super) struct ExprTranslator<'a, F: FunctionManager> {
-    pub(super) builder: FunctionBuilder<'a>,
+pub(super) struct ExprTranslator<'a, 'b, F: FunctionManager> {
+    pub(super) builder: &'b mut FunctionBuilder<'a>,
     pub(super) variables: HashMap<String, Variable>,
     pub(super) functions: HashMap<String, (FuncRef, usize)>,
-    pub(super) module: &'a mut JITModule,
+    pub(super) module: &'b mut JITModule,
     pub(super) _function_manager: std::marker::PhantomData<F>,
 }
 
@@ -31,14 +31,14 @@ impl From<ModuleError> for TranslatorError {
     }
 }
 
-impl<'a, F: FunctionManager> ExprTranslator<'a, F> {
-    pub fn get_builder(
-        self,
-    ) ->
-        FunctionBuilder<'a>
-    {
-        self.builder
-    }
+impl<'a, 'b, F: FunctionManager> ExprTranslator<'a, 'b, F> {
+    // pub fn get_builder(
+    //     self,
+    // ) ->
+    //     FunctionBuilder<'a>
+    // {
+    //     self.builder
+    // }
 
     pub fn translate(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
         match expr {
