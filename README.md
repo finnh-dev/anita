@@ -1,5 +1,5 @@
 # anita
-Anita is a JIT compiler that allows runtime compilation of expressions in the format of [evalexpr](https://github.com/ISibboI/evalexpr).
+Anita is a JIT compiler that allows runtime compilation of math expressions.
 
 ## Usage
 Anita compiles a given expression and returns a structure with a function that follows a given signature. This can be achieved by using the `compile_expression!` macro.
@@ -12,18 +12,12 @@ assert_eq!(function(4_f32), 5_f32);
 ## Supported features
 This is the current status of evalexpr features in anita
 ### Types
-So far anita only supports floats.
-Type | Status | Note
-|----------|------------|------------|
-| f32 | supported |
-| f64 | planned |
-| bool | supported | bools are represented as floats 0.0 => false 1.0 => true
-| i32 | unsupported |
-| i64 | unsupported |
-| String | unsupported |
-| Tupel | unsupported |
+So far anita only supports f32 floats.
+Booleans are represented as floats where 0.0 => false and != 0.0 => true.
+By default logical operators or functions return 1.0 if the result is true.
 
 ### Operators
+
 Operator | Status | Description |
 |----------|------------|-------------|
 | ^   | supported | Exponentiation |
@@ -32,32 +26,24 @@ Operator | Status | Description |
 | %   | supported | Modulo |
 | +   | supported | Sum |
 | -   | supported | Difference |
-| <   | planned   | Lower than |
-| \>  | planned   | Greater than |
-| <=  | planned   | Lower than or equal |
-| \>= | planned   | Greater than or equal |
-| ==  | planned   | Equal |
-| !=  | planned   | Not equal |
-| &&  | planned   | Logical and |
-| &#124;&#124; | planned | Logical or |
-| =   | supported | Assignment |
-| -=  | planned   | Difference-Assignment |
-| +=  | planned   | Sum-Assignment or String-Concatenation-Assignment |
-| *=  | planned   | Product-Assignment |
-| /=  | planned   | Division-Assignment |
-| %=  | planned   | Modulo-Assignment |
-| ^=  | planned   | Exponentiation-Assignment |
-| &&= | planned   | Logical-And-Assignment |
-| &#124;&#124;=   | planned | Logical-Or-Assignment |
+| <   | supported | Lower than |
+| \>  | supported | Greater than |
+| <=  | supported | Lower than or equal |
+| \>= | supported | Greater than or equal |
+| ==  | supported | Equal |
+| !=  | supported | Not equal |
+| &&  | supported | Logical and |
+| &#124;&#124; | supported | Logical or |
+| =   | supported | Assignment |W
 | ;   | supported | Expression Chaining |
-| ,   | unsupported | Aggregation |
 | - (unary) | supported | Negation |
-| !   | unsupported | Logical not |
+| !   | supported | Logical not |
 
 ### Functions
+Anita includes the following Functions by default unless the `no-default-functions` feature is used.
 | Identifier           | Status        | Argument Amount | Argument Types                | Description |
 |----------------------|---------------|-----------------|-------------------------------|-------------|
-| `min`                | supported     | 2               | Float                         | Returns the minimum of the arguments |
+| `min`                | supported     | 2               | Float                         | see [std::f32::max](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.max) |
 | `max`                | supported     | 2               | Float                         | Returns the maximum of the arguments |
 | `floor`              | supported     | 1               | Float                         | Returns the largest integer less than or equal to a number |
 | `round`              | supported     | 1               | Float                         | Returns the nearest integer to a number. Rounds half-way cases away from 0.0 |
@@ -91,32 +77,42 @@ Operator | Status | Description |
 | `cbrt`               | supported     | 1               | Float                         | Returns the cube root of a number |
 | `hypot`              | supported     | 2               | Float                         | Calculates the length of the hypotenuse of a right-angle triangle given legs of length given by the two arguments |
 | `abs`                | supported     | 1               | Float                         | Returns the absolute value of a float |
-| `len`                | unsupported   | 1               | String/Tuple                  | Returns the character length of a string, or the amount of elements in a tuple (not recursively) |
-| `contains`           | unsupported   | 2               | Tuple, any non-tuple          | Returns true if second argument exists in first tuple argument. |
-| `contains_any`       | unsupported   | 2               | Tuple, Tuple of any non-tuple | Returns true if one of the values in the second tuple argument exists in first tuple argument. |
-| `typeof`             | unsupported   | 1               | Any                           | returns "string", "float", "int", "boolean", "tuple", or "empty" depending on the type of the argument  |
-| `str::regex_matches` | unsupported   | 2               | String, String                | Returns true if the first argument matches the regex in the second argument (Requires `regex_support` feature flag) |
-| `str::regex_replace` | unsupported   | 3               | String, String, String        | Returns the first argument with all matches of the regex in the second argument replaced by the third argument (Requires `regex_support` feature flag) |
-| `str::to_lowercase`  | unsupported   | 1               | String                        | Returns the lower-case version of the string |
-| `str::to_uppercase`  | unsupported   | 1               | String                        | Returns the upper-case version of the string |
-| `str::trim`          | unsupported   | 1               | String                        | Strips whitespace from the start and the end of the string |
-| `str::from`          | unsupported   | >= 0            | Any                           | Returns passed value as string |
-| `str::substring`     | unsupported   | 3               | String, Int, Int              | Returns a substring of the first argument, starting at the second argument and ending at the third argument. If the last argument is omitted, the substring extends to the end of the string |
-| `bitand`             | unsupported   | 2               | Int                           | Computes the bitwise and of the given integers |
-| `bitor`              | unsupported   | 2               | Int                           | Computes the bitwise or of the given integers |
-| `bitxor`             | unsupported   | 2               | Int                           | Computes the bitwise xor of the given integers |
-| `bitnot`             | unsupported   | 1               | Int                           | Computes the bitwise not of the given integer |
-| `shl`                | unsupported   | 2               | Int                           | Computes the given integer bitwise shifted left by the other given integer |
-| `shr`                | unsupported   | 2               | Int                           | Computes the given integer bitwise shifted right by the other given integer |
-| `random`             | unsupported   | 0               | Empty                         | Return a random float between 0 and 1. Requires the `rand` feature flag. |
-### Other features
-Evalexpr allows the declaration of new variables. This is supported using anita but all used variables have to either be mentioned in the function signature or used with the assignment operator before being read to avoid the use of uninitialized variables.
+
+#### Custom Functions
+If different functions are needed, they can be introduced using the `FunctionManager` trait.
+To construct a function Manager it is advised to use the `#[function_manager]` macro attribute. 
+By default using the custom functions will have the same name as they are declared with. This can be overwritten using the `#[name = "other_name"]` attribute.
+```rust
+struct CustomFunctions {}
+
+#[function_manager]
+impl CustomFunctions {
+    fn custom(x: f32) -> f32 {
+        x + 1.0
+    }
+
+    #[name = "not_zero"]
+    fn custom_if_not_zero(x: f32) -> f32 {
+        (x != 0) as u8 as f32
+    }
+}
+
+#[cfg(tests)]
+mod test {
+    #[test]
+    fn it_works() {
+        let function: CompiledFunction<fn(f32) -> f32> = compile_expression!("not_zero(custom(x))", (x) -> f32);
+        assert_eq(function(-1.0), 0.0);
+        assert_eq(function(42.0), 1.0);
+    }
+}
+```
 
 ## SIMD
 TODO!
 
 ## Frontend
-In order to reduce effort anita is using evalexpr's operator tree to build the cranelift IR. This might be subject to change though the frontend syntax is likely to stay the same.
+Anita uses a custom language frontend based on a reduced feature set of the [evalexpr](https://crates.io/crates/evalexpr) crate.
 
 ## Naming
 The name anita is inspired by the first all-electronic desktop calculator [ANITA](<https://en.wikipedia.org/wiki/Sumlock_ANITA_calculator>)
