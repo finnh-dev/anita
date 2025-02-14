@@ -10,7 +10,7 @@ assert_eq!(function(4_f32), 5_f32);
 ```
 
 ## Supported features
-This is the current status of evalexpr features in anita
+This is the current state of features in anita
 ### Types
 So far anita only supports f32 floats.
 Booleans are represented as floats where 0.0 => false and != 0.0 => true.
@@ -43,35 +43,35 @@ Operator | Status | Description |
 Anita includes the following Functions by default unless the `no-default-functions` feature is used.
 | Identifier           | Status        | Argument Amount | Argument Types                | Description |
 |----------------------|---------------|-----------------|-------------------------------|-------------|
-| `min`                | supported     | 2               | Float                         | see [std::f32::max](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.max) |
-| `max`                | supported     | 2               | Float                         | Returns the maximum of the arguments |
-| `floor`              | supported     | 1               | Float                         | Returns the largest integer less than or equal to a number |
-| `round`              | supported     | 1               | Float                         | Returns the nearest integer to a number. Rounds half-way cases away from 0.0 |
-| `ceil`               | supported     | 1               | Float                         | Returns the smallest integer greater than or equal to a number |
+| `min`                | supported     | 2               | Float                         | see [std::f32::min](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.min) |
+| `max`                | supported     | 2               | Float                         | see [std::f32::max](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.max) |
+| `floor`              | supported     | 1               | Float                         | see [std::f32::floor](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.floor) |
+| `round`              | supported     | 1               | Float                         | see [std::f32::round](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.round) |
+| `ceil`               | supported     | 1               | Float                         | see [std::f32::ceil](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.ceil) |
 | `if`                 | supported     | 3               | Float, Float, Float           | If the first argument is normal and not equal to 0.0, returns the second argument, otherwise, returns the third  |
-| `is_nan`             | supported     | 1               | Float                         | Returns true if the argument is the floating-point value NaN, false if it is another floating-point value, and throws an error if it is not a number  |
-| `is_finite`          | supported     | 1               | Float                         | Returns true if the argument is a finite floating-point number, false otherwise  |
-| `is_infinite`        | supported     | 1               | Float                         | Returns true if the argument is an infinite floating-point number, false otherwise  |
-| `is_normal`          | supported     | 1               | Float                         | Returns true if the argument is a floating-point number that is neither zero, infinite, [subnormal](https://en.wikipedia.org/wiki/Subnormal_number), or NaN, false otherwise  |
-| `ln`                 | supported     | 1               | Float                         | Returns the natural logarithm of the number |
-| `log`                | supported     | 2               | Float, Float                  | Returns the logarithm of the number with respect to an arbitrary base |
-| `log2`               | supported     | 1               | Float                         | Returns the base 2 logarithm of the number |
-| `log10`              | supported     | 1               | Float                         | Returns the base 10 logarithm of the number |
-| `exp`                | supported     | 1               | Float                         | Returns `e^(number)`, (the exponential function) |
-| `exp2`               | supported     | 1               | Float                         | Returns `2^(number)` |
-| `pow`                | supported     | 2               | Float, Float                  | Raises a number to the power of the other number |
-| `cos`                | supported     | 1               | Float                         | Computes the cosine of a number (in radians) |
-| `acos`               | supported     | 1               | Float                         | Computes the arccosine of a number. The return value is in radians in the range [0, pi] or NaN if the number is outside the range [-1, 1] |
-| `cosh`               | supported     | 1               | Float                         | Hyperbolic cosine function |
-| `acosh`              | supported     | 1               | Float                         | Inverse hyperbolic cosine function |
-| `sin`                | supported     | 1               | Float                         | Computes the sine of a number (in radians) |
-| `asin`               | supported     | 1               | Float                         | Computes the arcsine of a number. The return value is in radians in the range [-pi/2, pi/2] or NaN if the number is outside the range [-1, 1] |
-| `sinh`               | supported     | 1               | Float                         | Hyperbolic sine function |
-| `asinh`              | supported     | 1               | Float                         | Inverse hyperbolic sine function |
-| `tan`                | supported     | 1               | Float                         | Computes the tangent of a number (in radians) |
-| `atan`               | supported     | 1               | Float                         | Computes the arctangent of a number. The return value is in radians in the range [-pi/2, pi/2] |
-| `atan2`              | supported     | 2               | Float, Float                  | Computes the four quadrant arctangent in radians |
-| `tanh`               | supported     | 1               | Float                         | Hyperbolic tangent function |
+| `is_nan`             | supported     | 1               | Float                         | see [std::f32::is_nan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_nan).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `is_finite`          | supported     | 1               | Float                         | see [std::f32::is_finite](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_finite).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `is_infinite`        | supported     | 1               | Float                         | see [std::f32::is_infinite](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_infinite).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `is_normal`          | supported     | 1               | Float                         | see [std::f32::is_normal](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_normal).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `ln`                 | supported     | 1               | Float                         | see [std::f32::ln](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.ln) |
+| `log`                | supported     | 2               | Float, Float                  | see [std::f32::log](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.log) |
+| `log2`               | supported     | 1               | Float                         | see [std::f32::log2](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.log2) |
+| `log10`              | supported     | 1               | Float                         | see [std::f32::log10](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.log10) |
+| `exp`                | supported     | 1               | Float                         | see [std::f32::exp](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.exp) |
+| `exp2`               | supported     | 1               | Float                         | see [std::f32::exp2](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.exp2) |
+| `pow`                | supported     | 2               | Float, Float                  | see [std::f32::pow](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.pow) |
+| `cos`                | supported     | 1               | Float                         | see [std::f32::cos](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.cos) |
+| `acos`               | supported     | 1               | Float                         | see [std::f32::acos](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.acos) |
+| `cosh`               | supported     | 1               | Float                         | see [std::f32::cosh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.cosh) |
+| `acosh`              | supported     | 1               | Float                         | see [std::f32::acosh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.acosh) |
+| `sin`                | supported     | 1               | Float                         | see [std::f32::sin](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.sin) |
+| `asin`               | supported     | 1               | Float                         | see [std::f32::asin](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.asin) |
+| `sinh`               | supported     | 1               | Float                         | see [std::f32::sinh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.sinh) |
+| `asinh`              | supported     | 1               | Float                         | see [std::f32::asinh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.asinh) |
+| `tan`                | supported     | 1               | Float                         | see [std::f32::tan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.tan) |
+| `atan`               | supported     | 1               | Float                         | see [std::f32::atan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.atan) |
+| `atan2`              | supported     | 2               | Float, Float                  | see [std::f32::atan2](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.atan2) |
+| `tanh`               | supported     | 1               | Float                         | see [std::f32::tanh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.tanh) |
 | `atanh`              | supported     | 1               | Float                         | Inverse hyperbolic tangent function. |
 | `sqrt`               | supported     | 1               | Float                         | Returns the square root of a number. Returns NaN for a negative number |
 | `cbrt`               | supported     | 1               | Float                         | Returns the cube root of a number |
@@ -112,7 +112,7 @@ mod test {
 TODO!
 
 ## Frontend
-Anita uses a custom language frontend based on a reduced feature set of the [evalexpr](https://crates.io/crates/evalexpr) crate.
+Anita uses a custom language frontend inspired by the [evalexpr](https://crates.io/crates/evalexpr) crate.
 
 ## Naming
 The name anita is inspired by the first all-electronic desktop calculator [ANITA](<https://en.wikipedia.org/wiki/Sumlock_ANITA_calculator>)
