@@ -93,7 +93,7 @@ impl CustomFunctions {
 
     #[name = "not_zero"]
     fn custom_if_not_zero(x: f32) -> f32 {
-        (x != 0) as u8 as f32
+        (x != 0.0) as u8 as f32
     }
 }
 
