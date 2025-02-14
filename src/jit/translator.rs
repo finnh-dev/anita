@@ -32,14 +32,6 @@ impl From<ModuleError> for TranslatorError {
 }
 
 impl<'a, 'b, F: FunctionManager> ExprTranslator<'a, 'b, F> {
-    // pub fn get_builder(
-    //     self,
-    // ) ->
-    //     FunctionBuilder<'a>
-    // {
-    //     self.builder
-    // }
-
     pub fn translate(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
         match expr {
             Expr::VariableRead { identifier } => {

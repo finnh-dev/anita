@@ -5,19 +5,20 @@ use codegen::ir::FuncRef;
 use cranelift::{
     codegen,
     prelude::{
-        settings, types as cranelift_types, AbiParam, Block, Configurable, EntityRef, FunctionBuilder,
-        FunctionBuilderContext, InstBuilder, Signature, Variable,
+        settings, types as cranelift_types, AbiParam, Block, Configurable, EntityRef,
+        FunctionBuilder, FunctionBuilderContext, InstBuilder, Signature, Variable,
     },
 };
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
+use cranelift_types::F32;
 use frontend::{parser, Expr};
 use peg::{error::ParseError, str::LineCol};
 use translator::{ExprTranslator, TranslatorError};
-use cranelift_types::F32;
 
 pub mod compiled_function;
 pub mod frontend;
+pub mod types;
 mod translator;
 
 #[no_mangle]
@@ -182,7 +183,10 @@ impl<F: FunctionManager> JIT<F> {
         module: &mut JITModule,
     ) -> Result<(), ModuleError> {
         let inbuilt_pow_signature = Signature {
-            params: vec![AbiParam::new(cranelift_types::F32), AbiParam::new(cranelift_types::F32)],
+            params: vec![
+                AbiParam::new(cranelift_types::F32),
+                AbiParam::new(cranelift_types::F32),
+            ],
             returns: vec![AbiParam::new(cranelift_types::F32)],
             call_conv: module.isa().default_call_conv(),
         };
