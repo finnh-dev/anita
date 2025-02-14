@@ -15,7 +15,7 @@ impl From<Box<JITModule>> for FrozenJITModule {
 }
 
 /// FrozenJITModule is only used to make sure the memory holding the compiled code is valid until the associated function pointer is dropped.
-/// Therefore the JITModule is never modified after being frozen.
+/// Therefore the JITModule is never modified after being frozen and can safely be considered Sync.
 unsafe impl Sync for FrozenJITModule {}
 
 impl Drop for FrozenJITModule {

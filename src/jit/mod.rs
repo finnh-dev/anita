@@ -206,7 +206,7 @@ impl<F: FunctionManager> JIT<F> {
         Self::declare_inbuilt_functions(&mut functions, &mut builder, &mut self.module)?;
 
         let mut translator = ExprTranslator::<F> {
-            builder,
+            builder: &mut builder,
             variables,
             functions,
             module: &mut self.module,
@@ -216,8 +216,6 @@ impl<F: FunctionManager> JIT<F> {
         let Some(return_value) = translator.translate(root)? else {
             return Err(JITError::RootEvaluatesInNoValue);
         };
-
-        let mut builder = translator.get_builder();
 
         builder.ins().return_(&[return_value]);
         builder.finalize();
