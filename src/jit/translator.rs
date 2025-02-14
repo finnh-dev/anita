@@ -56,21 +56,17 @@ impl<'a, 'b, F: FunctionManager> ExprTranslator<'a, 'b, F> {
                 Ok(Some(ret))
             }
             Expr::Call { identifier, args } => {
-                let args = args
-                    .into_iter()
-                    .try_fold(Vec::new(), |mut acc, expr| {
-                        match self.translate(expr)? {
-                            Some(val) => {
-                                acc.push(val);
-                                Result::<Vec<Value>, TranslatorError>::Ok(acc)
-                            }
-                            None => Ok(acc),
+                let args = args.into_iter().try_fold(Vec::new(), |mut acc, expr| {
+                    match self.translate(expr)? {
+                        Some(val) => {
+                            acc.push(val);
+                            Result::<Vec<Value>, TranslatorError>::Ok(acc)
                         }
-                    })?;
+                        None => Ok(acc),
+                    }
+                })?;
 
-                Ok(Some(
-                    self.function_call(&identifier, args.as_slice())?,
-                ))
+                Ok(Some(self.function_call(&identifier, args.as_slice())?))
             }
             Expr::Add { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
@@ -97,9 +93,7 @@ impl<'a, 'b, F: FunctionManager> ExprTranslator<'a, 'b, F> {
             }
             Expr::Exp { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(
-                    self.function_call("inbuilt_powf", &[lhs, rhs])?,
-                ))
+                Ok(Some(self.function_call("inbuilt_powf", &[lhs, rhs])?))
             }
             Expr::Neg { value } => {
                 let value = self.get_value(*value)?;
@@ -202,10 +196,7 @@ impl<'a, 'b, F: FunctionManager> ExprTranslator<'a, 'b, F> {
         Ok(self.builder.inst_results(call)[0])
     }
 
-    fn declare_function(
-        &mut self,
-        identifier: &str,
-    ) -> Result<(FuncRef, usize), TranslatorError> {
+    fn declare_function(&mut self, identifier: &str) -> Result<(FuncRef, usize), TranslatorError> {
         let Some(func) = self.functions.get(identifier) else {
             let Some(signature) =
                 F::function_signature(identifier, self.module.isa().default_call_conv())

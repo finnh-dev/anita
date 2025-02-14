@@ -2,13 +2,19 @@ use std::collections::HashMap;
 
 use super::function_manager::{DefaultFunctionManager, FunctionManager};
 use codegen::ir::FuncRef;
-use cranelift::prelude::*;
+use cranelift::{
+    codegen,
+    prelude::{
+        settings, types as cranelift_types, AbiParam, Block, Configurable, EntityRef, FunctionBuilder,
+        FunctionBuilderContext, InstBuilder, Signature, Variable,
+    },
+};
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
 use frontend::{parser, Expr};
 use peg::{error::ParseError, str::LineCol};
 use translator::{ExprTranslator, TranslatorError};
-use types::F32;
+use cranelift_types::F32;
 
 pub mod compiled_function;
 pub mod frontend;
@@ -100,8 +106,12 @@ pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
 impl<F: FunctionManager> Default for JIT<F> {
     fn default() -> Self {
         let mut flag_builder = settings::builder();
-        flag_builder.set("use_colocated_libcalls", "false").expect("Failed to set JIT flags");
-        flag_builder.set("is_pic", "false").expect("Failed to set JIT flags");
+        flag_builder
+            .set("use_colocated_libcalls", "false")
+            .expect("Failed to set JIT flags");
+        flag_builder
+            .set("is_pic", "false")
+            .expect("Failed to set JIT flags");
         let isa_builder = cranelift_native::builder().unwrap_or_else(|msg| {
             panic!("host machine is not supported: {}", msg);
         });
@@ -172,8 +182,8 @@ impl<F: FunctionManager> JIT<F> {
         module: &mut JITModule,
     ) -> Result<(), ModuleError> {
         let inbuilt_pow_signature = Signature {
-            params: vec![AbiParam::new(types::F32), AbiParam::new(types::F32)],
-            returns: vec![AbiParam::new(types::F32)],
+            params: vec![AbiParam::new(cranelift_types::F32), AbiParam::new(cranelift_types::F32)],
+            returns: vec![AbiParam::new(cranelift_types::F32)],
             call_conv: module.isa().default_call_conv(),
         };
         let func_id = module.declare_function(
