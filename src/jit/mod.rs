@@ -2,22 +2,24 @@ use std::collections::HashMap;
 
 use super::function_manager::{DefaultFunctionManager, FunctionManager};
 use codegen::ir::FuncRef;
-use cranelift::prelude::*;
+use cranelift::{
+    codegen,
+    prelude::{
+        settings, AbiParam, Block, Configurable, EntityRef, FunctionBuilder,
+        FunctionBuilderContext, InstBuilder, Signature, Variable,
+    },
+};
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
 use frontend::{parser, Expr};
 use peg::{error::ParseError, str::LineCol};
 use translator::{ExprTranslator, TranslatorError};
-use types::F32;
+use types::AnitaType;
 
 pub mod compiled_function;
 pub mod frontend;
 mod translator;
-
-#[no_mangle]
-pub extern "C" fn inbuilt_powf(x: f32, y: f32) -> f32 {
-    x.powf(y)
-}
+pub mod types;
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -29,7 +31,7 @@ macro_rules! compile_expression {
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
             use $crate::function_manager::DefaultFunctionManager;
 
-            let mut jit = JIT::<DefaultFunctionManager>::default();
+            let mut jit = JIT::<f32, DefaultFunctionManager>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
                     let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
@@ -48,7 +50,7 @@ macro_rules! compile_expression {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
 
-            let mut jit = JIT::<$function_manager>::default();
+            let mut jit = JIT::<f32, $function_manager>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
                     let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
@@ -90,18 +92,23 @@ impl From<ParseError<LineCol>> for JITError {
     }
 }
 
-pub struct JIT<F: FunctionManager = DefaultFunctionManager> {
+pub struct JIT<T: AnitaType, F: FunctionManager = DefaultFunctionManager> {
     builder_context: FunctionBuilderContext,
     ctx: codegen::Context,
     module: Box<JITModule>,
     _function_manager: std::marker::PhantomData<F>,
+    _type: std::marker::PhantomData<T>,
 }
 
-impl<F: FunctionManager> Default for JIT<F> {
+impl<T: AnitaType, F: FunctionManager> Default for JIT<T, F> {
     fn default() -> Self {
         let mut flag_builder = settings::builder();
-        flag_builder.set("use_colocated_libcalls", "false").expect("Failed to set JIT flags");
-        flag_builder.set("is_pic", "false").expect("Failed to set JIT flags");
+        flag_builder
+            .set("use_colocated_libcalls", "false")
+            .expect("Failed to set JIT flags");
+        flag_builder
+            .set("is_pic", "false")
+            .expect("Failed to set JIT flags");
         let isa_builder = cranelift_native::builder().unwrap_or_else(|msg| {
             panic!("host machine is not supported: {}", msg);
         });
@@ -110,7 +117,7 @@ impl<F: FunctionManager> Default for JIT<F> {
             .expect("Failed to finish ISA builder");
         let mut builder = JITBuilder::with_isa(isa, cranelift_module::default_libcall_names());
 
-        builder.symbol("inbuilt_powf", inbuilt_powf as *const u8);
+        builder.symbol("inbuilt_pow", T::inbuilt_pow as *const u8);
         for (ident, addr) in F::function_symbols() {
             builder.symbol(ident, addr);
         }
@@ -120,11 +127,12 @@ impl<F: FunctionManager> Default for JIT<F> {
             ctx: module.make_context(),
             module,
             _function_manager: std::marker::PhantomData,
+            _type: std::marker::PhantomData,
         }
     }
 }
 
-impl<F: FunctionManager> JIT<F> {
+impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
     /// Drops self and returns an owned pointer to the memory region containing the compiled code.
     ///
     /// Can be used to manually manage the memory the validatity of the compiled function relies on.
@@ -151,7 +159,7 @@ impl<F: FunctionManager> JIT<F> {
         self.translate(ast, parameters)?;
 
         let id = self.module.declare_function(
-            "waveshaper",
+            "expression",
             cranelift_module::Linkage::Export,
             &self.ctx.func.signature,
         )?;
@@ -172,26 +180,37 @@ impl<F: FunctionManager> JIT<F> {
         module: &mut JITModule,
     ) -> Result<(), ModuleError> {
         let inbuilt_pow_signature = Signature {
-            params: vec![AbiParam::new(types::F32), AbiParam::new(types::F32)],
-            returns: vec![AbiParam::new(types::F32)],
+            params: vec![
+                AbiParam::new(T::cranelift_repr()),
+                AbiParam::new(T::cranelift_repr()),
+            ],
+            returns: vec![AbiParam::new(T::cranelift_repr())],
             call_conv: module.isa().default_call_conv(),
         };
         let func_id = module.declare_function(
-            "inbuilt_powf",
+            "inbuilt_pow",
             cranelift_module::Linkage::Import,
             &inbuilt_pow_signature,
         )?;
         let func = (module.declare_func_in_func(func_id, builder.func), 2);
-        functions.insert("inbuilt_powf".to_owned(), func);
+        functions.insert("inbuilt_pow".to_owned(), func);
         Ok(())
     }
 
     fn translate(&mut self, root: Expr, params: &[&str]) -> Result<(), JITError> {
         for _name in params {
-            self.ctx.func.signature.params.push(AbiParam::new(F32));
+            self.ctx
+                .func
+                .signature
+                .params
+                .push(AbiParam::new(T::cranelift_repr()));
         }
 
-        self.ctx.func.signature.returns.push(AbiParam::new(F32)); // Always returns f32
+        self.ctx
+            .func
+            .signature
+            .returns
+            .push(AbiParam::new(T::cranelift_repr())); // Always returns f32
 
         let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_context);
 
@@ -200,17 +219,18 @@ impl<F: FunctionManager> JIT<F> {
         builder.switch_to_block(entry_block);
         builder.seal_block(entry_block);
 
-        let variables = declare_variables(&mut builder, &root, params, entry_block)?;
+        let variables = Self::declare_variables(&mut builder, &root, params, entry_block)?;
         let mut functions = HashMap::default();
 
         Self::declare_inbuilt_functions(&mut functions, &mut builder, &mut self.module)?;
 
-        let mut translator = ExprTranslator::<F> {
+        let mut translator = ExprTranslator::<T, F> {
             builder: &mut builder,
             variables,
             functions,
             module: &mut self.module,
             _function_manager: std::marker::PhantomData,
+            _type: std::marker::PhantomData,
         };
 
         let Some(return_value) = translator.translate(root)? else {
@@ -222,47 +242,47 @@ impl<F: FunctionManager> JIT<F> {
 
         Ok(())
     }
-}
 
-fn declare_variables(
-    builder: &mut FunctionBuilder,
-    node: &Expr,
-    params: &[&str],
-    entry_block: Block,
-) -> Result<HashMap<String, Variable>, JITError> {
-    let mut variables = HashMap::new();
-    let mut index = 0;
+    fn declare_variables(
+        builder: &mut FunctionBuilder,
+        node: &Expr,
+        params: &[&str],
+        entry_block: Block,
+    ) -> Result<HashMap<String, Variable>, JITError> {
+        let mut variables = HashMap::new();
+        let mut index = 0;
 
-    let mut vars = node.variables();
-    for (i, name) in params.iter().enumerate() {
-        vars.set_defined(&name.to_string());
-        let val = builder.block_params(entry_block)[i];
-        let var = declare_variable(builder, &mut variables, &mut index, name);
-        builder.def_var(var, val);
+        let mut vars = node.variables();
+        for (i, name) in params.iter().enumerate() {
+            vars.set_defined(&name.to_string());
+            let val = builder.block_params(entry_block)[i];
+            let var = Self::declare_variable(builder, &mut variables, &mut index, name);
+            builder.def_var(var, val);
+        }
+        let identifiers = match vars.initialized_identifiers() {
+            Ok(i) => i,
+            Err(uninitialized) => return Err(JITError::UseOfUninitializedVariables(uninitialized)),
+        };
+
+        for name in identifiers {
+            let _ = Self::declare_variable(builder, &mut variables, &mut index, &name);
+        }
+
+        Ok(variables)
     }
-    let identifiers = match vars.initialized_identifiers() {
-        Ok(i) => i,
-        Err(uninitialized) => return Err(JITError::UseOfUninitializedVariables(uninitialized)),
-    };
 
-    for name in identifiers {
-        let _ = declare_variable(builder, &mut variables, &mut index, &name);
+    fn declare_variable(
+        builder: &mut FunctionBuilder,
+        variables: &mut HashMap<String, Variable>,
+        index: &mut usize,
+        name: &str,
+    ) -> Variable {
+        let var = Variable::new(*index);
+        if !variables.contains_key(name) {
+            variables.insert(name.into(), var);
+            builder.declare_var(var, T::cranelift_repr());
+            *index += 1;
+        }
+        var
     }
-
-    Ok(variables)
-}
-
-fn declare_variable(
-    builder: &mut FunctionBuilder,
-    variables: &mut HashMap<String, Variable>,
-    index: &mut usize,
-    name: &str,
-) -> Variable {
-    let var = Variable::new(*index);
-    if !variables.contains_key(name) {
-        variables.insert(name.into(), var);
-        builder.declare_var(var, F32);
-        *index += 1;
-    }
-    var
 }

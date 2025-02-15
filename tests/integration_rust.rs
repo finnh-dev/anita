@@ -1,7 +1,8 @@
 use core::f32;
 
+use anita::jit::types::AnitaType;
 use anita::{compile_expression, jit::JITError};
-use anita::function_manager;
+use internal_macros::function_manager;
 
 #[test]
 fn owned_input() {
@@ -18,10 +19,7 @@ fn empty_input() {
     match result {
         Err(JITError::ParseError(_)) => assert!(true),
         Ok(_) => panic!("Test failed by succeeding"),
-        Err(e) => panic!(
-            "Expected JITError::RootEvaluatesInNoValue but got: {:?}",
-            e
-        ),
+        Err(e) => panic!("Expected JITError::RootEvaluatesInNoValue but got: {:?}", e),
     }
 }
 
@@ -31,21 +29,22 @@ fn use_of_uninitialized_variables() {
     let expected_unitialized = ["a", "b", "c"];
     match result {
         Err(JITError::UseOfUninitializedVariables(vars)) => {
-            vars.iter().for_each(|var| assert!(expected_unitialized.contains(&var.as_ref())));
-            expected_unitialized.iter().for_each(|var| assert!(vars.contains(&(*var).to_owned())));
-        },
+            vars.iter()
+                .for_each(|var| assert!(expected_unitialized.contains(&var.as_ref())));
+            expected_unitialized
+                .iter()
+                .for_each(|var| assert!(vars.contains(&(*var).to_owned())));
+        }
         Ok(_) => panic!("Test failed by succeeding"),
-        Err(e) => panic!(
-            "Expected JITError::RootEvaluatesInNoValue but got: {:?}",
-            e
-        ),
+        Err(e) => panic!("Expected JITError::RootEvaluatesInNoValue but got: {:?}", e),
     }
 }
 
 #[test]
 fn complex_function() {
     let expression = "tanh(a * x^3) + b * sin(c * x)";
-    let function = compile_expression!(expression, (x, a, b, c) -> f32).expect("Compilation failed");
+    let function =
+        compile_expression!(expression, (x, a, b, c) -> f32).expect("Compilation failed");
     let result = function(3.0, 0.7, 0.1, 6.4);
     let expected = f32::tanh(0.7 * f32::powf(3.0, 3.0)) + 0.1 * f32::sin(6.4 * 3.0);
     assert_eq!(result, expected);
@@ -82,7 +81,8 @@ impl TestFunctionManager {
 
 #[test]
 fn custom_function_manager() {
-    let func = compile_expression!("tanh(x)", (x) -> f32, TestFunctionManager).expect("Compilation failed");
+    let func = compile_expression!("tanh(x)", (x) -> f32, TestFunctionManager)
+        .expect("Compilation failed");
     let result = func(f32::INFINITY);
     assert_eq!(result, 1.0);
     let result = func(f32::NEG_INFINITY);

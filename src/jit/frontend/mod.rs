@@ -107,16 +107,16 @@ impl Variables {
         let mut identifiers = Vec::new();
         identifiers.append(&mut self.read);
         identifiers.append(&mut self.write);
-        let unique_identifiers = identifiers.into_iter().collect::<HashSet<String>>().into_iter().collect();
+        let unique_identifiers = identifiers
+            .into_iter()
+            .collect::<HashSet<String>>()
+            .into_iter()
+            .collect();
         Ok(unique_identifiers)
     }
 }
 
-
-
 impl Expr {
-    
-
     pub fn variables(&self) -> Variables {
         let read = self.variables_read();
         let write = self.variables_write();
@@ -475,7 +475,7 @@ impl Expr {
 peg::parser!(pub grammar parser() for str {
     pub rule expression() -> Expr
     = _ e:operations() _ {e}
-    
+
     rule operations() -> Expr
     = precedence!{
         s:@ _ ";" _ r:(@) { Expr::Chain { side: Box::new(s), ret: Box::new(r) } }

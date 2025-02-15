@@ -1,7 +1,7 @@
+use crate::jit::types::AnitaType;
 use internal_macros::function_manager;
 
 pub trait FunctionManager {
-    fn function_address(identifier: &str) -> Option<*const u8>;
     fn function_symbols() -> std::boxed::Box<[(&'static str, *const u8)]>;
     fn function_signature(
         identifier: &str,

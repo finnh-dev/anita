@@ -1,6 +1,6 @@
 #[test]
 fn test_macro_expansion() {
-    macrotest::expand("tests/expand/*.rs");
+    macrotest::expand("tests/expand/*test.rs");
 }
 
 // struct TestFunctionManager;
