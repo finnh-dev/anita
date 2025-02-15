@@ -1,4 +1,4 @@
-use anita::compile_expression;
+use anita_core::compile_expression;
 
 #[test]
 fn exponentiation() {
@@ -51,7 +51,8 @@ fn assignment() {
 
 #[test]
 fn chain() {
-    let func = compile_expression!("y = 2; z = 2; x + y + z", (x) -> f32).expect("Compilation failed");
+    let func =
+        compile_expression!("y = 2; z = 2; x + y + z", (x) -> f32).expect("Compilation failed");
     let result = func(2.0);
     assert_eq!(result, 2.0 + 2.0 + 2.0);
 }

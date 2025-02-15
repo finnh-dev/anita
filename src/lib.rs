@@ -1,9 +1,7 @@
-#![deny(unused_must_use)]
-#![deny(unsafe_op_in_unsafe_fn)]
-#![warn(clippy::unwrap_used)]
+pub use anita_core::compile_expression;
+pub use anita_core::cranelift;
+pub use anita_core::function_manager::FunctionManager;
+pub use anita_core::jit;
+pub use anita_macros;
 
-pub mod function_manager;
-pub mod jit;
-
-pub use internal_macros::function_manager as function_manager;
-pub use cranelift;
+pub mod default_functions;

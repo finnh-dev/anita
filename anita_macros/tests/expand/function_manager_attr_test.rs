@@ -1,5 +1,6 @@
 struct TestFunctionManager;
 
+#[cfg(not(feature="whatever"))]
 #[internal_macros::function_manager]
 impl TestFunctionManager {
     fn min(x: f32, y: f32) -> f32 {
