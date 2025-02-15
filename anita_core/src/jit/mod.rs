@@ -34,7 +34,7 @@ macro_rules! compile_expression {
             let mut jit = JIT::<$target, NoFunctions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> f32>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -53,7 +53,7 @@ macro_rules! compile_expression {
             let mut jit = JIT::<$target, $functions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> f32>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
