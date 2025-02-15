@@ -34,7 +34,7 @@ Anita can support any type implementing the `AnitaType` trait but only can suppo
 | &#124;&#124; | Logical or |
 | =   | Assignment |
 | ;   | Expression Chaining |
-| - (unary) | supported | Negation |
+| - (unary) | Negation |
 | !   | Logical not |
 
 ### Functions
@@ -58,7 +58,7 @@ Anita ships with a set of default functions for the f32 type. If these are not u
 | `log10`              | 1               | see [std::f32::log10](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.log10) |
 | `exp`                | 1               | see [std::f32::exp](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.exp) |
 | `exp2`               | 1               | see [std::f32::exp2](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.exp2) |
-| `pow`                | 2               | see [std::f32::pow](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.pow) |
+| `pow`                | 2               | see [std::f32::powf](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.powf) |
 | `cos`                | 1               | see [std::f32::cos](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.cos) |
 | `acos`               | 1               | see [std::f32::acos](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.acos) |
 | `cosh`               | 1               | see [std::f32::cosh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.cosh) |
