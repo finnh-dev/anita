@@ -1,7 +1,8 @@
 use core::f32;
 
 use anita::{compile_expression, jit::JITError};
-use anita::function_manager;
+use anita::anita_macros::function_manager;
+use anita::jit::types::AnitaType;
 
 #[test]
 fn owned_input() {
