@@ -39,47 +39,48 @@ Anita can support any type implementing the `AnitaType` trait but only can suppo
 | &#124;&#124; | Logical or |
 | =   | Assignment |
 | ;   | Expression Chaining |
-| - (unary) | supported | Negation |
+| - (unary) | Negation |
 | !   | Logical not |
 
 ### Functions
 Anita ships with a set of default functions for the f32 type. If these are not used the `no-default-functions` feature can be enabled to reduce compiler overhead.
 | Identifier           | Argument Amount | Description |
 |----------------------|-----------------|-------------|
-| `min`                | 2               | see [std::f32::min](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.min) |
-| `max`                | 2               | see [std::f32::max](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.max) |
-| `floor`              | 1               | see [std::f32::floor](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.floor) |
-| `round`              | 1               | see [std::f32::round](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.round) |
-| `ceil`               | 1               | see [std::f32::ceil](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.ceil) |
+| `min`                | 2               | see [core::f32::min](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.min) |
+| `max`                | 2               | see [core::f32::max](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.max) |
+| `floor`              | 1               | see [std::f32::floor](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.floor) |
+| `round`              | 1               | see [std::f32::round](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.round) |
+| `ceil`               | 1               | see [std::f32::ceil](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.ceil) |
 | `if`                 | 3               | If the first argument is normal and not equal to 0.0, returns the second argument, otherwise, returns the third  |
-| `is_nan`             | 1               | see [std::f32::is_nan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_nan).<br> The return value is mapped to 1.0 if true and 0.0 if false |
-| `is_finite`          | 1               | see [std::f32::is_finite](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_finite).<br> The return value is mapped to 1.0 if true and 0.0 if false |
-| `is_infinite`        | 1               | see [std::f32::is_infinite](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_infinite).<br> The return value is mapped to 1.0 if true and 0.0 if false |
-| `is_normal`          | 1               | see [std::f32::is_normal](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_normal).<br> The return value is mapped to 1.0 if true and 0.0 if false |
-| `ln`                 | 1               | see [std::f32::ln](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.ln) |
-| `log`                | 2               | see [std::f32::log](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.log) |
-| `log2`               | 1               | see [std::f32::log2](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.log2) |
-| `log10`              | 1               | see [std::f32::log10](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.log10) |
-| `exp`                | 1               | see [std::f32::exp](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.exp) |
-| `exp2`               | 1               | see [std::f32::exp2](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.exp2) |
-| `pow`                | 2               | see [std::f32::pow](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.pow) |
-| `cos`                | 1               | see [std::f32::cos](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.cos) |
-| `acos`               | 1               | see [std::f32::acos](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.acos) |
-| `cosh`               | 1               | see [std::f32::cosh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.cosh) |
-| `acosh`              | 1               | see [std::f32::acosh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.acosh) |
-| `sin`                | 1               | see [std::f32::sin](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.sin) |
-| `asin`               | 1               | see [std::f32::asin](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.asin) |
-| `sinh`               | 1               | see [std::f32::sinh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.sinh) |
-| `asinh`              | 1               | see [std::f32::asinh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.asinh) |
-| `tan`                | 1               | see [std::f32::tan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.tan) |
-| `atan`               | 1               | see [std::f32::atan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.atan) |
-| `atan2`              | 2               | see [std::f32::atan2](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.atan2) |
-| `tanh`               | 1               | see [std::f32::tanh](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.tanh) |
-| `atanh`              | 1               | Inverse hyperbolic tangent function. |
-| `sqrt`               | 1               | Returns the square root of a number. Returns NaN for a negative number |
-| `cbrt`               | 1               | Returns the cube root of a number |
-| `hypot`              | 2               | Calculates the length of the hypotenuse of a right-angle triangle given legs of length given by the two arguments |
-| `abs`                | 1               | Returns the absolute value of a float |
+| `is_nan`             | 1               | see [core::f32::is_nan](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_nan).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `is_finite`          | 1               | see [core::f32::is_finite](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_finite).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `is_infinite`        | 1               | see [core::f32::is_infinite](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_infinite).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `is_normal`          | 1               | see [core::f32::is_normal](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.is_normal).<br> The return value is mapped to 1.0 if true and 0.0 if false |
+| `mod`                | 2               | see [core::f32::rem](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.rem) |
+| `ln`                 | 1               | see [std::f32::ln](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.ln) |
+| `log`                | 2               | see [std::f32::log](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.log) |
+| `log2`               | 1               | see [std::f32::log2](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.log2) |
+| `log10`              | 1               | see [std::f32::log10](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.log10) |
+| `exp`                | 1               | see [std::f32::exp](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.exp) |
+| `exp2`               | 1               | see [std::f32::exp2](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.exp2) |
+| `pow`                | 2               | see [std::f32::powf](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.powf) |
+| `cos`                | 1               | see [std::f32::cos](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.cos) |
+| `acos`               | 1               | see [std::f32::acos](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.acos) |
+| `cosh`               | 1               | see [std::f32::cosh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.cosh) |
+| `acosh`              | 1               | see [std::f32::acosh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.acosh) |
+| `sin`                | 1               | see [std::f32::sin](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.sin) |
+| `asin`               | 1               | see [std::f32::asin](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.asin) |
+| `sinh`               | 1               | see [std::f32::sinh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.sinh) |
+| `asinh`              | 1               | see [std::f32::asinh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.asinh) |
+| `tan`                | 1               | see [std::f32::tan](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.tan) |
+| `atan`               | 1               | see [std::f32::atan](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.atan) |
+| `atan2`              | 2               | see [std::f32::atan2](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.atan2) |
+| `tanh`               | 1               | see [std::f32::tanh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.tanh) |
+| `atanh`              | 1               | see [std::f32::atanh](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.atanh) |
+| `sqrt`               | 1               | see [std::f32::sqrt](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.sqrt) |
+| `cbrt`               | 1               | see [std::f32::cbrt](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.cbrt) |
+| `hypot`              | 2               | see [std::f32::hypot](https://doc.rust-lang.org/stable/std/primitive.f32.html#method.hypot) |
+| `abs`                | 1               | see [core::f32::abs](https://doc.rust-lang.org/stable/core/primitive.f32.html#method.abs) |
 
 #### Custom Functions
 If different functions are needed, they can be introduced using the `FunctionManager` trait.
