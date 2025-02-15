@@ -1,12 +1,12 @@
-use anita_macros::function_manager;
 use anita_core::jit::types::AnitaType;
+use anita_macros::function_manager;
 
 #[cfg(not(feature = "no-default-functions"))]
 pub struct DefaultFunctions;
 
 #[cfg(feature = "no-default-functions")]
 #[function_manager]
-impl DefaultFunctions{}
+impl DefaultFunctions {}
 
 #[cfg(not(feature = "no-default-functions"))]
 #[function_manager]

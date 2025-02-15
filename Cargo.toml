@@ -3,6 +3,9 @@ name = "anita"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["anita_core", "anita_macros"]
+
 [dependencies]
 anita_macros = { path = "anita_macros" }
 anita_core = { path = "anita_core", optional = true }

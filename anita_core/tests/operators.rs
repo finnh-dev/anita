@@ -1,4 +1,4 @@
-use anita::compile_expression;
+use anita_core::compile_expression;
 
 #[test]
 fn exponentiation() {
