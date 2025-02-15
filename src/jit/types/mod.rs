@@ -2,7 +2,7 @@ use cranelift::prelude::{types::F32, FloatCC, FunctionBuilder, InstBuilder, Type
 
 pub trait AnitaType {
     fn cranelift_repr() -> Type;
-    
+
     fn constant(builder: &mut FunctionBuilder, value: f32) -> Value;
     fn add(builder: &mut FunctionBuilder, lhs: Value, rhs: Value) -> Value;
     fn sub(builder: &mut FunctionBuilder, lhs: Value, rhs: Value) -> Value;
@@ -19,7 +19,7 @@ pub trait AnitaType {
     fn and(builder: &mut FunctionBuilder, lhs: Value, rhs: Value) -> Value;
     fn or(builder: &mut FunctionBuilder, lhs: Value, rhs: Value) -> Value;
     fn not(builder: &mut FunctionBuilder, value: Value) -> Value;
-    
+
     extern "C" fn inbuilt_pow(self, value: Self) -> Self;
 }
 
@@ -104,7 +104,7 @@ impl AnitaType for f32 {
         let zero = builder.ins().f32const(0.0);
         builder.ins().fcmp(FloatCC::Equal, value, zero)
     }
-    
+
     extern "C" fn inbuilt_pow(self, value: Self) -> Self {
         self.powf(value)
     }

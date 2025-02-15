@@ -1,9 +1,9 @@
 use internal_macros::function_manager;
+use crate::jit::types::AnitaType;
 
 //TODO: Support AnitaType
 
 pub trait FunctionManager {
-    fn function_address(identifier: &str) -> Option<*const u8>;
     fn function_symbols() -> std::boxed::Box<[(&'static str, *const u8)]>;
     fn function_signature(
         identifier: &str,

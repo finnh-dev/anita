@@ -5,13 +5,12 @@ use codegen::ir::FuncRef;
 use cranelift::{
     codegen,
     prelude::{
-        settings, AbiParam, Block, Configurable, EntityRef,
-        FunctionBuilder, FunctionBuilderContext, InstBuilder, Signature, Variable,
+        settings, AbiParam, Block, Configurable, EntityRef, FunctionBuilder,
+        FunctionBuilderContext, InstBuilder, Signature, Variable,
     },
 };
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Module, ModuleError};
-// use cranelift_types::F32;s
 use frontend::{parser, Expr};
 use peg::{error::ParseError, str::LineCol};
 use translator::{ExprTranslator, TranslatorError};
@@ -19,8 +18,8 @@ use types::AnitaType;
 
 pub mod compiled_function;
 pub mod frontend;
-pub mod types;
 mod translator;
+pub mod types;
 
 #[macro_export]
 macro_rules! compile_expression {
@@ -98,7 +97,7 @@ pub struct JIT<T: AnitaType, F: FunctionManager = DefaultFunctionManager> {
     ctx: codegen::Context,
     module: Box<JITModule>,
     _function_manager: std::marker::PhantomData<F>,
-    _type: std::marker::PhantomData<T>
+    _type: std::marker::PhantomData<T>,
 }
 
 impl<T: AnitaType, F: FunctionManager> Default for JIT<T, F> {
@@ -133,7 +132,7 @@ impl<T: AnitaType, F: FunctionManager> Default for JIT<T, F> {
     }
 }
 
-impl<T: AnitaType ,F: FunctionManager> JIT<T, F> {
+impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
     /// Drops self and returns an owned pointer to the memory region containing the compiled code.
     ///
     /// Can be used to manually manage the memory the validatity of the compiled function relies on.
@@ -160,7 +159,7 @@ impl<T: AnitaType ,F: FunctionManager> JIT<T, F> {
         self.translate(ast, parameters)?;
 
         let id = self.module.declare_function(
-            "waveshaper",
+            "expression",
             cranelift_module::Linkage::Export,
             &self.ctx.func.signature,
         )?;
@@ -200,10 +199,18 @@ impl<T: AnitaType ,F: FunctionManager> JIT<T, F> {
 
     fn translate(&mut self, root: Expr, params: &[&str]) -> Result<(), JITError> {
         for _name in params {
-            self.ctx.func.signature.params.push(AbiParam::new(T::cranelift_repr()));
+            self.ctx
+                .func
+                .signature
+                .params
+                .push(AbiParam::new(T::cranelift_repr()));
         }
 
-        self.ctx.func.signature.returns.push(AbiParam::new(T::cranelift_repr())); // Always returns f32
+        self.ctx
+            .func
+            .signature
+            .returns
+            .push(AbiParam::new(T::cranelift_repr())); // Always returns f32
 
         let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_context);
 

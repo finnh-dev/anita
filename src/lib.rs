@@ -6,4 +6,4 @@ pub mod function_manager;
 pub mod jit;
 
 pub use cranelift;
-pub use internal_macros::function_manager;
+// pub use internal_macros::function_manager; TODO: uncomment
