@@ -23,18 +23,18 @@ pub mod types;
 
 #[macro_export]
 macro_rules! compile_expression {
-    (@to_f32 $_:ident) => {f32};
+    (@to_f32 $_:ident, $target:ty) => {$target};
 
-    ($expression:expr, ($($parameter:ident),+) -> f32) => {
+    ($expression:expr, ($($parameter:ident),+) -> $target:ty) => {
         {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
             use $crate::function_manager::NoFunctions;
 
-            let mut jit = JIT::<f32, NoFunctions>::default();
+            let mut jit = JIT::<$target, NoFunctions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> f32>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -45,15 +45,15 @@ macro_rules! compile_expression {
         }
     };
 
-    ($expression:expr, ($($parameter:ident),+) -> f32, $functions:ty) => {
+    ($expression:expr, ($($parameter:ident),+) -> $target:ty, $functions:ty) => {
         {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
 
-            let mut jit = JIT::<f32, $functions>::default();
+            let mut jit = JIT::<$target, $functions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> f32>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
