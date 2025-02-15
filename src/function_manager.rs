@@ -1,5 +1,5 @@
-use internal_macros::function_manager;
 use crate::jit::types::AnitaType;
+use internal_macros::function_manager;
 
 //TODO: Support AnitaType
 
