@@ -266,6 +266,6 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
 
         #function_manager
     };
-    
+
     result.into()
 }
