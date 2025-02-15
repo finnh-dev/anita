@@ -13,10 +13,15 @@ assert_eq!(function(4_f32), 5_f32);
 This is the current state of features in anita
 ### Types
 Anita can support any type implementing the `AnitaType` trait but only can support one type at a time which is speccified by the return type in the `compile_expression!` macro.
+#### Inbuilt type support
+| Type | Status    |
+|------|-----------|
+| f32  | supported |
+| f64  | untested  |
 
 ### Operators
 
-  Operator | Description |
+| Operator | Description |
 |----------|-------------|
 | ^   | Exponentiation |
 | *   | Product |
@@ -92,7 +97,7 @@ impl CustomFunctions {
 
     #[name = "not_zero"]
     fn custom_if_not_zero(x: f32) -> f32 {
-        (x != 0) as u8 as f32
+        (x != 0.0) as u8 as f32
     }
 }
 
