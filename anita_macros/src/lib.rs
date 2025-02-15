@@ -7,7 +7,6 @@ use syn::{
     parse_macro_input, Attribute, Block, Ident, ItemFn, LitStr, PatType, ReturnType, Token, Type,
 };
 
-#[derive(Debug)]
 struct ImplBlock {
     attributes: Vec<Attribute>,
     ident: Ident,
@@ -65,7 +64,6 @@ impl Parse for NameAttribute {
     }
 }
 
-#[derive(Debug)]
 struct Function {
     fn_item: ItemFn,
     alias: Option<LitStr>,
