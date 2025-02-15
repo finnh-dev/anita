@@ -229,7 +229,7 @@ impl ToTokens for FunctionManager {
         let function_signatures = &self.function_signatures;
         let crate_name = &self.crate_name;
         tokens.extend(quote! {
-            impl #crate_name::function_manager::FunctionManager for #ident {
+            impl #crate_name::FunctionManager for #ident {
                 fn function_symbols() -> std::boxed::Box<[(&'static str, *const u8)]> {
                     std::boxed::Box::new([#(#function_symbols,)*])
                 }
@@ -266,6 +266,6 @@ pub fn function_manager(_attribute: TokenStream, input: TokenStream) -> TokenStr
 
         #function_manager
     };
-    
+
     result.into()
 }

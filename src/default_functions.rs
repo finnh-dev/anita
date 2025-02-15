@@ -1,23 +1,16 @@
-use crate::jit::types::AnitaType;
-use internal_macros::function_manager;
+use anita_core::jit::types::AnitaType;
+use anita_macros::function_manager;
 
-pub trait FunctionManager {
-    fn function_symbols() -> std::boxed::Box<[(&'static str, *const u8)]>;
-    fn function_signature(
-        identifier: &str,
-        calling_conventrion: cranelift::prelude::isa::CallConv,
-    ) -> Option<cranelift::prelude::Signature>;
-}
-
-pub struct DefaultFunctionManager;
+#[cfg(not(feature = "no-default-functions"))]
+pub struct DefaultFunctions;
 
 #[cfg(feature = "no-default-functions")]
 #[function_manager]
-impl DefaultFunctionManager {}
+impl DefaultFunctions {}
 
 #[cfg(not(feature = "no-default-functions"))]
 #[function_manager]
-impl DefaultFunctionManager {
+impl DefaultFunctions {
     #[name = "min"]
     fn internal_min(x: f32, y: f32) -> f32 {
         x.min(y)

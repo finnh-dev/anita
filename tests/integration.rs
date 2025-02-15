@@ -1,8 +1,9 @@
 use core::f32;
 
+use anita::anita_macros::function_manager;
+use anita::default_functions::DefaultFunctions;
 use anita::jit::types::AnitaType;
 use anita::{compile_expression, jit::JITError};
-use internal_macros::function_manager;
 
 #[test]
 fn owned_input() {
@@ -43,8 +44,8 @@ fn use_of_uninitialized_variables() {
 #[test]
 fn complex_function() {
     let expression = "tanh(a * x^3) + b * sin(c * x)";
-    let function =
-        compile_expression!(expression, (x, a, b, c) -> f32).expect("Compilation failed");
+    let function = compile_expression!(expression, (x, a, b, c) -> f32, DefaultFunctions)
+        .expect("Compilation failed");
     let result = function(3.0, 0.7, 0.1, 6.4);
     let expected = f32::tanh(0.7 * f32::powf(3.0, 3.0)) + 0.1 * f32::sin(6.4 * 3.0);
     assert_eq!(result, expected);

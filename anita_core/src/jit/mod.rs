@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::function_manager::{DefaultFunctionManager, FunctionManager};
+use super::function_manager::FunctionManager;
 use codegen::ir::FuncRef;
 use cranelift::{
     codegen,
@@ -23,18 +23,18 @@ pub mod types;
 
 #[macro_export]
 macro_rules! compile_expression {
-    (@to_f32 $_:ident) => {f32};
+    (@to_f32 $_:ident, $target:ty) => {$target};
 
-    ($expression:expr, ($($parameter:ident),+) -> f32) => {
+    ($expression:expr, ($($parameter:ident),+) -> $target:ty) => {
         {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
-            use $crate::function_manager::DefaultFunctionManager;
+            use $crate::function_manager::NoFunctions;
 
-            let mut jit = JIT::<f32, DefaultFunctionManager>::default();
+            let mut jit = JIT::<$target, NoFunctions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -45,15 +45,15 @@ macro_rules! compile_expression {
         }
     };
 
-    ($expression:expr, ($($parameter:ident),+) -> f32, $function_manager:ty) => {
+    ($expression:expr, ($($parameter:ident),+) -> $target:ty, $functions:ty) => {
         {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
 
-            let mut jit = JIT::<f32, $function_manager>::default();
+            let mut jit = JIT::<$target, $functions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter)),+) -> f32>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -92,7 +92,7 @@ impl From<ParseError<LineCol>> for JITError {
     }
 }
 
-pub struct JIT<T: AnitaType, F: FunctionManager = DefaultFunctionManager> {
+pub struct JIT<T: AnitaType, F: FunctionManager> {
     builder_context: FunctionBuilderContext,
     ctx: codegen::Context,
     module: Box<JITModule>,

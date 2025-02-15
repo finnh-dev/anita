@@ -1,6 +1,6 @@
 use core::f32;
 
-use anita::compile_expression;
+use anita::{compile_expression, default_functions::DefaultFunctions};
 
 const MIN: f32 = f32::MIN_POSITIVE; // 1.17549435e-38f32
 const MAX: f32 = f32::MAX;
@@ -28,8 +28,8 @@ const TEST_VALUES: [(&str, f32); 17] = [
 ];
 
 fn test_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
-    let compiled_function =
-        compile_expression!(expression, (x, y) -> f32).expect("Compilation failed");
+    let compiled_function = compile_expression!(expression, (x, y) -> f32, DefaultFunctions)
+        .expect("Compilation failed");
     for (c1, test_value1) in TEST_VALUES {
         for (c2, test_value2) in TEST_VALUES {
             let result = compiled_function(test_value1, test_value2);
@@ -42,7 +42,7 @@ fn test_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
 
 fn test_function(expression: &str, function: fn(f32) -> f32) {
     let compiled_function =
-        compile_expression!(expression, (x) -> f32).expect("Compilation failed");
+        compile_expression!(expression, (x) -> f32, DefaultFunctions).expect("Compilation failed");
     for (c, test_value) in TEST_VALUES {
         let result = compiled_function(test_value);
         let expected = function(test_value);
@@ -52,8 +52,8 @@ fn test_function(expression: &str, function: fn(f32) -> f32) {
 }
 
 fn test_unspecified_precision_function_2_params(expression: &str, function: fn(f32, f32) -> f32) {
-    let compiled_function =
-        compile_expression!(expression, (x, y) -> f32).expect("Compilation failed");
+    let compiled_function = compile_expression!(expression, (x, y) -> f32, DefaultFunctions)
+        .expect("Compilation failed");
     for (c1, test_value1) in TEST_VALUES {
         for (c2, test_value2) in TEST_VALUES {
             let result = compiled_function(test_value1, test_value2);
@@ -71,7 +71,7 @@ fn test_unspecified_precision_function_2_params(expression: &str, function: fn(f
 
 fn test_unspecified_precision_function(expression: &str, function: fn(f32) -> f32) {
     let compiled_function =
-        compile_expression!(expression, (x) -> f32).expect("Compilation failed");
+        compile_expression!(expression, (x) -> f32, DefaultFunctions).expect("Compilation failed");
     for (c, test_value) in TEST_VALUES {
         let result = compiled_function(test_value);
         let expected = function(test_value);
@@ -123,7 +123,8 @@ fn ceil() {
 #[test]
 fn if_function() {
     let compiled_function =
-        compile_expression!("if(is_normal(x), x, 0.0)", (x) -> f32).expect("Compilation failed");
+        compile_expression!("if(is_normal(x), x, 0.0)", (x) -> f32, DefaultFunctions)
+            .expect("Compilation failed");
     let result = compiled_function(2.5);
     assert_eq!(result, 2.5);
     let result = compiled_function(f32::INFINITY);
@@ -133,7 +134,7 @@ fn if_function() {
 #[test]
 fn is_nan() {
     let compiled_function =
-        compile_expression!("is_nan(x)", (x) -> f32).expect("Compilation failed");
+        compile_expression!("is_nan(x)", (x) -> f32, DefaultFunctions).expect("Compilation failed");
     let result = compiled_function(f32::NAN);
     assert!(result == 1.0);
     let result = compiled_function(1.0);
@@ -142,8 +143,8 @@ fn is_nan() {
 
 #[test]
 fn is_finite() {
-    let compiled_function =
-        compile_expression!("is_finite(x)", (x) -> f32).expect("Compilation failed");
+    let compiled_function = compile_expression!("is_finite(x)", (x) -> f32, DefaultFunctions)
+        .expect("Compilation failed");
     let result = compiled_function(1.0);
     assert!(result == 1.0);
     let result = compiled_function(f32::INFINITY);
@@ -154,8 +155,8 @@ fn is_finite() {
 
 #[test]
 fn is_infinite() {
-    let compiled_function =
-        compile_expression!("is_infinite(x)", (x) -> f32).expect("Compilation failed");
+    let compiled_function = compile_expression!("is_infinite(x)", (x) -> f32, DefaultFunctions)
+        .expect("Compilation failed");
     let result = compiled_function(f32::INFINITY);
     assert!(result == 1.0);
     let result = compiled_function(f32::NEG_INFINITY);
@@ -164,13 +165,12 @@ fn is_infinite() {
     assert!(result == 0.0);
     let result = compiled_function(1.0);
     assert!(result == 0.0);
-    let _ = 1_f32.is_infinite();
 }
 
 #[test]
 fn is_normal() {
-    let compiled_function =
-        compile_expression!("is_normal(x)", (x) -> f32).expect("Compilation failed");
+    let compiled_function = compile_expression!("is_normal(x)", (x) -> f32, DefaultFunctions)
+        .expect("Compilation failed");
     let result = compiled_function(MIN);
     assert!(result == 1.0);
     let result = compiled_function(MAX);

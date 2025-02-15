@@ -3,22 +3,17 @@ name = "anita"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["anita_core", "anita_macros"]
 
 [dependencies]
-internal_macros = { path = "internal_macros" }
-cranelift = "0.114.0"
-cranelift-module = "0.114.0"
-cranelift-jit = {version = "0.114.0", optional = true}
-cranelift-native = "0.114.0"
-evalexpr = "12.0.1"
-itertools = "0.13.0"
-peg = "0.8.4"
+anita_macros = { path = "anita_macros" }
+anita_core = { path = "anita_core", optional = true }
 
 [features]
-default = ["cranelift-jit"]
-selinux-fix = ["cranelift-jit/selinux-fix"]
-no-default-functions = ["cranelift-jit"]
+default = ["anita_core"]
+selinux-fix = ["anita_core/selinux-fix"]
+no-default-functions = ["anita_core"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
-cranelift-jit = {version = "0.114.0", features = ["selinux-fix"]}
+anita_core = { path = "anita_core",  features = ["selinux-fix"]}
