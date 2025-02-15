@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies]
 anita_macros = { path = "../anita_macros" }
-cranelift = "0.114.0"
-cranelift-module = "0.114.0"
-cranelift-jit = {version = "0.114.0", optional = true}
-cranelift-native = "0.114.0"
+cranelift = "0.116.1"
+cranelift-module = "0.116.0"
+cranelift-jit = {version = "0.116.1", optional = true}
+cranelift-native = "0.116.1"
 evalexpr = "12.0.1"
-itertools = "0.13.0"
+itertools = "0.14.0"
 peg = "0.8.4"
 
 [features]
@@ -20,4 +20,4 @@ default = ["cranelift-jit"]
 selinux-fix = ["cranelift-jit/selinux-fix"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
-cranelift-jit = {version = "0.114.0", features = ["selinux-fix"]}
+cranelift-jit = {version = "0.116.1", features = ["selinux-fix"]}
