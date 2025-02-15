@@ -165,7 +165,6 @@ fn is_infinite() {
     assert!(result == 0.0);
     let result = compiled_function(1.0);
     assert!(result == 0.0);
-    let _ = 1_f32.is_infinite();
 }
 
 #[test]
