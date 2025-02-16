@@ -16,7 +16,7 @@ fn it_works() {
         match jit.compile("x", &[stringify!(x)]) {
             Ok(code_ptr) => {
                 let function_pointer = unsafe {
-                    mem::transmute::<*const u8, fn(compile_expression!(@to_type x,f32x4)) -> f32x4>(
+                    mem::transmute::<*const u8, fn(f32x4) -> f32x4>(
                         code_ptr,
                     )
                 };
@@ -25,7 +25,7 @@ fn it_works() {
             }
             Err(e) => Err(e),
         }
-    };
+    }.expect("compilation failed");
     let x = f32x4::splat(5.0);
     let result = function(x);
     assert_eq!(x, result);
