@@ -151,7 +151,7 @@ impl AnitaType for f32x4 {
         builder.ins().fcmp(FloatCC::Equal, value, zero)
     }
     
-    #[allow(improper_ctypes_definitions)]
+    #[allow(improper_ctypes_definitions)] // TODO: verify safety
     extern "C" fn inbuilt_pow(self, value: Self) -> Self {
         f32x4::exp(value * self.ln())
     }
