@@ -150,7 +150,8 @@ impl AnitaType for f32x4 {
         let zero = builder.ins().splat(F32X4, zero_scalar);
         builder.ins().fcmp(FloatCC::Equal, value, zero)
     }
-
+    
+    #[allow(improper_ctypes_definitions)]
     extern "C" fn inbuilt_pow(self, value: Self) -> Self {
         f32x4::exp(value * self.ln())
     }
