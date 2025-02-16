@@ -18,6 +18,7 @@ peg = "0.8.4"
 [features]
 default = ["cranelift-jit"]
 selinux-fix = ["cranelift-jit/selinux-fix"]
+simd = []
 
 [target.'cfg(target_os = "linux")'.dependencies]
 cranelift-jit = {version = "0.116.1", features = ["selinux-fix"]}

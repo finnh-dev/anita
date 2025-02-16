@@ -13,7 +13,8 @@ anita_core = { path = "anita_core", optional = true }
 [features]
 default = ["anita_core"]
 selinux-fix = ["anita_core/selinux-fix"]
-no-default-functions = ["anita_core"]
+no-default-functions = []
+simd = ["anita_core/simd"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
 anita_core = { path = "anita_core",  features = ["selinux-fix"]}

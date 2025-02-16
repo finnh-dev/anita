@@ -24,4 +24,6 @@ pub trait AnitaType {
 }
 
 mod f32;
+#[cfg(feature = "simd")]
+mod f32x4;
 mod f64;

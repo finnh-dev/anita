@@ -533,9 +533,9 @@ mod tests {
                 println!("{}", parsed.to_string());
                 println!("{:#?}", parsed)
             }
-            Err(err) => println!("{}", err.to_string()),
+            Err(err) => println!("{}", err),
         }
 
-        assert!(false)
+        panic!("panic for diagnostics")
     }
 }

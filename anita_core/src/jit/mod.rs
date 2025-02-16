@@ -23,7 +23,7 @@ pub mod types;
 
 #[macro_export]
 macro_rules! compile_expression {
-    (@to_f32 $_:ident, $target:ty) => {$target};
+    (@to_type $_:ident, $target:ty) => {$target};
 
     ($expression:expr, ($($parameter:ident),+) -> $target:ty) => {
         {
@@ -34,7 +34,7 @@ macro_rules! compile_expression {
             let mut jit = JIT::<$target, NoFunctions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_type $parameter, $target)),+) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -53,7 +53,7 @@ macro_rules! compile_expression {
             let mut jit = JIT::<$target, $functions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_type $parameter, $target)),+) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -210,7 +210,7 @@ impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
             .func
             .signature
             .returns
-            .push(AbiParam::new(T::cranelift_repr())); // Always returns f32
+            .push(AbiParam::new(T::cranelift_repr()));
 
         let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_context);
 
@@ -239,6 +239,8 @@ impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
 
         builder.ins().return_(&[return_value]);
         builder.finalize();
+
+        println!("Function IR:\n{}", self.ctx.func);
 
         Ok(())
     }

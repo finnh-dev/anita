@@ -32,7 +32,7 @@ impl From<ModuleError> for TranslatorError {
     }
 }
 
-impl<'a, 'b, T: AnitaType, F: FunctionManager> ExprTranslator<'a, 'b, T, F> {
+impl<T: AnitaType, F: FunctionManager> ExprTranslator<'_, '_, T, F> {
     pub fn translate(&mut self, expr: Expr) -> Result<Option<Value>, TranslatorError> {
         match expr {
             Expr::VariableRead { identifier } => {
@@ -42,7 +42,7 @@ impl<'a, 'b, T: AnitaType, F: FunctionManager> ExprTranslator<'a, 'b, T, F> {
                     .unwrap_or_else(|| panic!("Variable {} does not exist", identifier));
                 Ok(Some(self.builder.use_var(*variable)))
             }
-            Expr::Const { value } => Ok(Some(T::constant(&mut self.builder, value))),
+            Expr::Const { value } => Ok(Some(T::constant(self.builder, value))),
             Expr::Chain { side, ret } => {
                 let _side = self.translate(*side)?;
                 let ret = self.get_value(*ret)?;
@@ -63,23 +63,23 @@ impl<'a, 'b, T: AnitaType, F: FunctionManager> ExprTranslator<'a, 'b, T, F> {
             }
             Expr::Add { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::add(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::add(self.builder, lhs, rhs)))
             }
             Expr::Sub { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::sub(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::sub(self.builder, lhs, rhs)))
             }
             Expr::Mul { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::mul(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::mul(self.builder, lhs, rhs)))
             }
             Expr::Div { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::div(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::div(self.builder, lhs, rhs)))
             }
             Expr::Mod { lhs, rhs } => {
                 let (value, modulus) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::modulo(&mut self.builder, value, modulus)))
+                Ok(Some(T::modulo(self.builder, value, modulus)))
             }
             Expr::Exp { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
@@ -87,7 +87,7 @@ impl<'a, 'b, T: AnitaType, F: FunctionManager> ExprTranslator<'a, 'b, T, F> {
             }
             Expr::Neg { value } => {
                 let value = self.get_value(*value)?;
-                Ok(Some(T::neg(&mut self.builder, value)))
+                Ok(Some(T::neg(self.builder, value)))
             }
             Expr::Assign { identifier, value } => {
                 let variable = self
@@ -101,15 +101,15 @@ impl<'a, 'b, T: AnitaType, F: FunctionManager> ExprTranslator<'a, 'b, T, F> {
             }
             Expr::Eq { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::eq(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::eq(self.builder, lhs, rhs)))
             }
             Expr::Neq { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::neq(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::neq(self.builder, lhs, rhs)))
             }
             Expr::Gt { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::gt(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::gt(self.builder, lhs, rhs)))
             }
             Expr::Lt { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
@@ -117,23 +117,23 @@ impl<'a, 'b, T: AnitaType, F: FunctionManager> ExprTranslator<'a, 'b, T, F> {
             }
             Expr::Geq { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::geq(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::geq(self.builder, lhs, rhs)))
             }
             Expr::Leq { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::leq(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::leq(self.builder, lhs, rhs)))
             }
             Expr::And { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::and(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::and(self.builder, lhs, rhs)))
             }
             Expr::Or { lhs, rhs } => {
                 let (lhs, rhs) = (self.get_value(*lhs)?, self.get_value(*rhs)?);
-                Ok(Some(T::or(&mut self.builder, lhs, rhs)))
+                Ok(Some(T::or(self.builder, lhs, rhs)))
             }
             Expr::Not { value } => {
                 let value = self.get_value(*value)?;
-                Ok(Some(T::not(&mut self.builder, value)))
+                Ok(Some(T::not(self.builder, value)))
             }
         }
     }
