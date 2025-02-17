@@ -240,8 +240,6 @@ impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
         builder.ins().return_(&[return_value]);
         builder.finalize();
 
-        println!("Function IR:\n{}", self.ctx.func);
-
         Ok(())
     }
 
