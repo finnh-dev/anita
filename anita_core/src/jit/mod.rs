@@ -71,7 +71,6 @@ pub enum JITError {
     ModuleError(ModuleError),
     ParseError(ParseError<LineCol>),
     UseOfUninitializedVariables(Box<[String]>),
-    RootEvaluatesInNoValue,
 }
 
 impl From<TranslatorError> for JITError {
@@ -233,9 +232,7 @@ impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
             _type: std::marker::PhantomData,
         };
 
-        let Some(return_value) = translator.translate(root)? else {
-            return Err(JITError::RootEvaluatesInNoValue);
-        };
+        let return_value = translator.translate(root)?;
 
         builder.ins().return_(&[return_value]);
         builder.finalize();
