@@ -1,6 +1,14 @@
 use anita_core::compile_expression;
 
 #[test]
+fn double_assignment() {
+    let func = compile_expression!("x = y = 5; x + y", () -> f32).expect("Compilation failed");
+    assert_eq!(10.0, func());
+    let func = compile_expression!("x = y = 5", () -> f32).expect("Compilation failed");
+    assert_eq!(5.0, func());
+}
+
+#[test]
 fn exponentiation() {
     let func = compile_expression!("x ^ 2", (x) -> f32).expect("Compilation failed");
     let result = func(2.0);

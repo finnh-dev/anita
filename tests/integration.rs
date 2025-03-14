@@ -18,7 +18,7 @@ fn empty_input() {
     let expr = "";
     let result = compile_expression!(expr, (x) -> f32);
     match result {
-        Err(JITError::ParseError(_)) => assert!(true),
+        Err(JITError::ParseError(_)) => {},
         Ok(_) => panic!("Test failed by succeeding"),
         Err(e) => panic!("Expected JITError::RootEvaluatesInNoValue but got: {:?}", e),
     }
