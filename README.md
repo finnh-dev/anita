@@ -5,7 +5,7 @@ Anita is a JIT compiler that allows runtime compilation of math expressions.
 Anita compiles a given expression and returns a structure with a function that follows a given signature. This can be achieved by using the `compile_expression!` macro.
 ```rust
 let expression: String = "x+1".to_owned(); // This can be anything implementing AsRef<str>
-let function: CompiledFunction<fn(f32) -> f32> = compile_expression!(expression, (x) -> f32);
+let function: CompiledFunction<fn(f32) -> f32> = compile_expression!(expression, (x) -> f32).unwrap();
 assert_eq!(function(4_f32), 5_f32);
 ```
 
@@ -105,7 +105,7 @@ impl CustomFunctions {
 mod test {
     #[test]
     fn it_works() {
-        let function: CompiledFunction<fn(f32) -> f32> = compile_expression!("not_zero(custom(x))", (x) -> f32);
+        let function: CompiledFunction<fn(f32) -> f32> = compile_expression!("not_zero(custom(x))", (x) -> f32).unwrap();
         assert_eq(function(-1.0), 0.0);
         assert_eq(function(42.0), 1.0);
     }

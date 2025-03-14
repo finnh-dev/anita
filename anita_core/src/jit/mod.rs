@@ -25,7 +25,7 @@ pub mod types;
 macro_rules! compile_expression {
     (@to_f32 $_:ident, $target:ty) => {$target};
 
-    ($expression:expr, ($($parameter:ident),+) -> $target:ty) => {
+    ($expression:expr, ($($parameter:ident),*) -> $target:ty) => {
         {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
@@ -34,7 +34,7 @@ macro_rules! compile_expression {
             let mut jit = JIT::<$target, NoFunctions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),*) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -45,7 +45,7 @@ macro_rules! compile_expression {
         }
     };
 
-    ($expression:expr, ($($parameter:ident),+) -> $target:ty, $functions:ty) => {
+    ($expression:expr, ($($parameter:ident),*) -> $target:ty, $functions:ty) => {
         {
             use std::mem;
             use $crate::jit::{compiled_function::CompiledFunction, JIT};
@@ -53,7 +53,7 @@ macro_rules! compile_expression {
             let mut jit = JIT::<$target, $functions>::default();
             match jit.compile($expression, &[$( stringify!($parameter) ),*]) {
                 Ok(code_ptr) => {
-                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),+) -> $target>(code_ptr) };
+                    let function_pointer = unsafe { mem::transmute::<*const u8, fn($(compile_expression!(@to_f32 $parameter, $target)),*) -> $target>(code_ptr) };
                     let memory_region = jit.dissolve();
                     Ok(CompiledFunction::new(memory_region, function_pointer))
                 },
@@ -71,7 +71,6 @@ pub enum JITError {
     ModuleError(ModuleError),
     ParseError(ParseError<LineCol>),
     UseOfUninitializedVariables(Box<[String]>),
-    RootEvaluatesInNoValue,
 }
 
 impl From<TranslatorError> for JITError {
@@ -233,9 +232,7 @@ impl<T: AnitaType, F: FunctionManager> JIT<T, F> {
             _type: std::marker::PhantomData,
         };
 
-        let Some(return_value) = translator.translate(root)? else {
-            return Err(JITError::RootEvaluatesInNoValue);
-        };
+        let return_value = translator.translate(root)?;
 
         builder.ins().return_(&[return_value]);
         builder.finalize();
