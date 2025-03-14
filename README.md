@@ -105,7 +105,7 @@ impl CustomFunctions {
 mod test {
     #[test]
     fn it_works() {
-        let function: CompiledFunction<fn(f32) -> f32> = compile_expression!("not_zero(custom(x))", (x) -> f32).unwrap();
+        let function: CompiledFunction<fn(f32) -> f32> = compile_expression!("not_zero(custom(x))", (x) -> f32, CustomFunctions).unwrap();
         assert_eq(function(-1.0), 0.0);
         assert_eq(function(42.0), 1.0);
     }
